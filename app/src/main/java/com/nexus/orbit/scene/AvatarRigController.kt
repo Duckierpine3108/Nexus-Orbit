@@ -28,6 +28,8 @@ class AvatarRigController(
     var leftHandEntity: Int = 0
 
     var spineEntity: Int = 0
+    var headEntity: Int = 0
+    var neckEntity: Int = 0
 
     init {
         inspectRigAndEnumerateJoints()
@@ -105,6 +107,21 @@ class AvatarRigController(
             Regex("(?i).*spine.*"),
             Regex("(?i).*chest.*")
         )
+
+        headEntity = findEntity(
+            Regex("(?i).*head.*")
+        )
+        neckEntity = findEntity(
+            Regex("(?i).*neck.*")
+        )
+    }
+
+    fun updateHeadPose(pitch: Float, yaw: Float) {
+        val target = if (headEntity != 0) headEntity else neckEntity
+        if (target != 0) {
+            applyJoint(target, JointTransform(rotX = pitch, rotY = yaw, rotZ = 0f))
+            animator?.updateBoneMatrices()
+        }
     }
 
     fun updateCustomPose(
@@ -134,21 +151,6 @@ class AvatarRigController(
         applyJoint(leftForearmEntity, pose.leftForearm)
         applyJoint(spineEntity, pose.spine)
 
-        animator?.updateBoneMatrices()
-    }
-
-    fun applyDirectJointRotation(entity: Int, rotX: Float, rotY: Float, rotZ: Float) {
-        applyJoint(entity, JointTransform(rotX, rotY, rotZ))
-        animator?.updateBoneMatrices()
-    }
-
-    fun resetToBindPose() {
-        for ((entity, bindMat) in initialBindTransforms) {
-            val instance = tm.getInstance(entity)
-            if (instance != 0) {
-                tm.setTransform(instance, bindMat)
-            }
-        }
         animator?.updateBoneMatrices()
     }
 

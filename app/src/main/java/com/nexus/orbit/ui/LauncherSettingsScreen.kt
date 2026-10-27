@@ -41,6 +41,10 @@ fun LauncherSettingsScreen(
         )
     }
 
+    fun updateHeadPose() {
+        rigController?.updateHeadPose(state.headPitch, state.headYaw)
+    }
+
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = OrbitDeepBlack.copy(alpha = 0.82f)
@@ -64,7 +68,40 @@ fun LauncherSettingsScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 1. Avatar Framing & Height (Interactive Live Sliders)
+            // 1. Head & Eye Alignment (Look at Camera)
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = OrbitSurfaceDark),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Text("Head & Eye Alignment (Look at Me)", color = OrbitCyanAccent, fontSize = 14.sp)
+
+                    Text("Tilt Down / Up (Pitch): ${state.headPitch.toInt()}°", color = OrbitTextSecondary, fontSize = 12.sp)
+                    Slider(
+                        value = state.headPitch,
+                        onValueChange = {
+                            state.headPitch = it
+                            updateHeadPose()
+                        },
+                        valueRange = -30f..45f
+                    )
+
+                    Text("Look Left / Right (Yaw): ${state.headYaw.toInt()}°", color = OrbitTextSecondary, fontSize = 12.sp)
+                    Slider(
+                        value = state.headYaw,
+                        onValueChange = {
+                            state.headYaw = it
+                            updateHeadPose()
+                        },
+                        valueRange = -45f..45f
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // 2. Avatar Framing
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = OrbitSurfaceDark),
@@ -97,7 +134,7 @@ fun LauncherSettingsScreen(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // 2. Right Arm Sliders
+            // 3. Right Arm Sliders
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = OrbitSurfaceDark),
@@ -131,7 +168,7 @@ fun LauncherSettingsScreen(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // 3. Left Arm Sliders
+            // 4. Left Arm Sliders
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = OrbitSurfaceDark),
@@ -165,7 +202,7 @@ fun LauncherSettingsScreen(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // 4. Launcher Settings
+            // 5. System Settings
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = OrbitSurfaceDark),

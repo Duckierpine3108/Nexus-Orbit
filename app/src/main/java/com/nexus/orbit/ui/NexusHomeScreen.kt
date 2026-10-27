@@ -58,7 +58,14 @@ fun NexusHomeScreen(
         AvatarAnimationController(rigController, state, scope)
     }
 
-    // Lifecycle Observer: Resets hands to your calibrated pose whenever you return home from an app
+    // Interactive Head Tracking: Head subtly turns as the ring rotates!
+    LaunchedEffect(state.ringAngle, rigController) {
+        if (!state.isLaunching) {
+            val yawOffset = (kotlin.math.sin(state.ringAngle) * 8.0f).coerceIn(-12f, 12f)
+            rigController?.updateHeadPose(state.headPitch, state.headYaw + yawOffset)
+        }
+    }
+
     DisposableEffect(lifecycleOwner, animController) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
@@ -83,7 +90,7 @@ fun NexusHomeScreen(
     val frontItem = projectedApps.firstOrNull { it.isFront } ?: projectedApps.firstOrNull()
     val selectedApp: InstalledApp? = frontItem?.let { apps.getOrNull(it.index) }
 
-    // Idle rotation with selection pause timer
+    // Idle rotation with pause timer
     LaunchedEffect(state.isDragging, state.isLaunching, settings.idleRotation, settings.pauseDurationSeconds, apps.size) {
         while (isActive) {
             val now = System.currentTimeMillis()
@@ -131,7 +138,6 @@ fun NexusHomeScreen(
                 )
             }
     ) {
-        // 1. Screen-filling 3D Room & Real Avatar
         NexusLauncherScene(
             state = state,
             settings = settings,
@@ -139,10 +145,15 @@ fun NexusHomeScreen(
             modifier = Modifier.fillMaxSize()
         )
 
-        // 2. Visible Front Apps Carousel
+        // 3D Orbital Carousel with Visual Stretch on Front Icon
         for (item in projectedApps) {
             val app = apps.getOrNull(item.index) ?: continue
             val isSelected = item.isFront
+
+            // If this is the launching app, apply the dynamic grab-and-stretch scale!
+            val scaleX = if (isSelected && state.isLaunching) item.scale * state.iconStretchX else item.scale
+            val scaleY = if (isSelected && state.isLaunching) item.scale * state.iconStretchY else item.scale
+            val currentAlpha = if (isSelected && state.isLaunching) state.iconStretchAlpha else item.alpha
 
             Box(
                 modifier = Modifier
@@ -151,8 +162,8 @@ fun NexusHomeScreen(
                         y = (item.screenY / density).dp - 36.dp
                     )
                     .size(72.dp)
-                    .scale(item.scale)
-                    .alpha(item.alpha)
+                    .scale(scaleX = scaleX, scaleY = scaleY)
+                    .alpha(currentAlpha)
                     .then(
                         if (isSelected) {
                             Modifier.border(2.5.dp, OrbitCyanAccent, CircleShape)
@@ -192,7 +203,7 @@ fun NexusHomeScreen(
             }
         }
 
-        // 3. Selected App Label HUD
+        // HUD App Label
         if (selectedApp != null && !state.isLaunching) {
             Column(
                 modifier = Modifier
@@ -215,7 +226,7 @@ fun NexusHomeScreen(
             }
         }
 
-        // 4. Discreet Settings Entry
+        // Settings Entry
         IconButton(
             onClick = { state.showSettings = true },
             modifier = Modifier
