@@ -68,7 +68,7 @@ fun LauncherSettingsScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 1. Head & Eye Alignment (Look at Camera)
+            // 1. Head & Eye Alignment
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = OrbitSurfaceDark),

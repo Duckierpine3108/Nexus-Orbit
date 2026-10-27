@@ -30,11 +30,19 @@ class MainActivity : ComponentActivity() {
         settings = LauncherSettings(applicationContext)
         launchController = AppLaunchController(this)
 
+        launcherState.avatarOffsetY = settings.avatarOffsetY
+        launcherState.avatarScale = settings.avatarScale
+        launcherState.rightArmX = settings.rightArmX
+        launcherState.rightArmY = settings.rightArmY
+        launcherState.rightArmZ = settings.rightArmZ
+        launcherState.leftArmX = settings.leftArmX
+        launcherState.leftArmY = settings.leftArmY
+        launcherState.leftArmZ = settings.leftArmZ
+
         setContent {
             NexusOrbitTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     BackHandler {
-                        // In an Android launcher, Back resets open sheets or returns to home
                         if (launcherState.showDiagnostics) {
                             launcherState.showDiagnostics = false
                         } else if (launcherState.showSettings) {

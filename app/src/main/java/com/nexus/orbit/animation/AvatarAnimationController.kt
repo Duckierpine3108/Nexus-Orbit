@@ -55,8 +55,7 @@ class AvatarAnimationController(
             val grabRz = -18f
 
             // PHASE 1: REACH & CLASP (0ms -> 180ms)
-            // Hand reaches to the app, head tilts down to look at it, icon squeezes slightly
-            val reachSteps = (180 / speed / stepDelay).toInt().coerceAtLeast(1)
+            val reachSteps = (180f / speed / stepDelay.toFloat()).toInt().coerceAtLeast(1)
             for (i in 1..reachSteps) {
                 val t = i.toFloat() / reachSteps
                 val eased = 1f - Math.pow((1.0 - t), 2.0).toFloat()
@@ -65,7 +64,6 @@ class AvatarAnimationController(
                 val curRy = startRy + (grabRy - startRy) * eased
                 val curRz = startRz + (grabRz - startRz) * eased
 
-                // Head looks down at app (+8 degrees)
                 rigController?.updateHeadPose(baseHeadPitch + 8f * eased, state.headYaw)
 
                 rigController?.updateCustomPose(
@@ -73,7 +71,6 @@ class AvatarAnimationController(
                     lX = leftX, lY = leftY, lZ = leftZ
                 )
 
-                // Icon squeezes slightly under hand
                 state.iconStretchX = 1.0f - (0.08f * eased)
                 state.iconStretchY = 1.0f - (0.08f * eased)
 
@@ -84,13 +81,11 @@ class AvatarAnimationController(
             onGrabTriggered()
 
             // PHASE 3: THE STRETCH (180ms -> 340ms)
-            // Hand pulls outward, and icon stretches horizontally and vertically!
-            val stretchSteps = (160 / speed / stepDelay).toInt().coerceAtLeast(1)
+            val stretchSteps = (160f / speed / stepDelay.toFloat()).toInt().coerceAtLeast(1)
             for (i in 1..stretchSteps) {
                 val t = i.toFloat() / stretchSteps
                 val eased = Math.sin(t * Math.PI / 2.0).toFloat()
 
-                // Arm pulls back and outward
                 val stretchRx = grabRx + 6f * eased
                 val stretchRy = grabRy + 12f * eased
                 val stretchRz = grabRz - 6f * eased
@@ -100,16 +95,15 @@ class AvatarAnimationController(
                     lX = leftX, lY = leftY, lZ = leftZ
                 )
 
-                // VISUAL STRETCH: Icon expands out from hand into window launch!
-                state.iconStretchX = 0.92f + (1.60f * eased) // Expands to ~2.5x
-                state.iconStretchY = 0.92f + (0.90f * eased) // Expands to ~1.8x
+                state.iconStretchX = 0.92f + (1.60f * eased)
+                state.iconStretchY = 0.92f + (0.90f * eased)
                 state.iconStretchAlpha = 1.0f - (0.40f * eased)
 
                 delay(stepDelay)
             }
 
             // PHASE 4: RECOVERY BACK TO NEUTRAL (340ms -> 560ms)
-            val recoverSteps = (220 / speed / stepDelay).toInt().coerceAtLeast(1)
+            val recoverSteps = (220f / speed / stepDelay.toFloat()).toInt().coerceAtLeast(1)
             for (i in 1..recoverSteps) {
                 val t = i.toFloat() / recoverSteps
                 val eased = 1f - Math.pow((1.0 - t), 3.0).toFloat()
@@ -118,7 +112,6 @@ class AvatarAnimationController(
                 val curRy = (grabRy + 12f) + (startRy - (grabRy + 12f)) * eased
                 val curRz = (grabRz - 6f) + (startRz - (grabRz - 6f)) * eased
 
-                // Head looks back up at the user
                 rigController?.updateHeadPose((baseHeadPitch + 8f) - (8f * eased), state.headYaw)
 
                 rigController?.updateCustomPose(
@@ -126,7 +119,6 @@ class AvatarAnimationController(
                     lX = leftX, lY = leftY, lZ = leftZ
                 )
 
-                // Reset icon stretch
                 state.iconStretchX = 2.52f - (1.52f * eased)
                 state.iconStretchY = 1.82f - (0.82f * eased)
                 state.iconStretchAlpha = 0.60f + (0.40f * eased)

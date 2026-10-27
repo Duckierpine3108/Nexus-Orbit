@@ -23,11 +23,11 @@ class LauncherState {
     var avatarOffsetY by mutableFloatStateOf(-0.35f)
     var avatarScale by mutableFloatStateOf(1.30f)
 
-    // Head Tilt (Pitch = +14° brings chin down so eyes look straight at user)
+    // Head Alignment & Gaze Tracking (+14 degrees tilts chin down to face user)
     var headPitch by mutableFloatStateOf(14f)
     var headYaw by mutableFloatStateOf(0f)
 
-    // Arm Angles (Your calibrated pose)
+    // Arm Angles
     var rightArmX by mutableFloatStateOf(80f)
     var rightArmY by mutableFloatStateOf(-2f)
     var rightArmZ by mutableFloatStateOf(-28f)
@@ -36,7 +36,7 @@ class LauncherState {
     var leftArmY by mutableFloatStateOf(19f)
     var leftArmZ by mutableFloatStateOf(13f)
 
-    // Dynamic Icon Stretch Animation during App Launch
+    // Icon Grab & Stretch
     var iconStretchX by mutableFloatStateOf(1.0f)
     var iconStretchY by mutableFloatStateOf(1.0f)
     var iconStretchAlpha by mutableFloatStateOf(1.0f)
