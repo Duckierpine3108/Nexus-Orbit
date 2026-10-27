@@ -140,6 +140,21 @@ class AvatarRigController(
         animator?.updateBoneMatrices()
     }
 
+    fun applyDirectJointRotation(entity: Int, rotX: Float, rotY: Float, rotZ: Float) {
+        applyJoint(entity, JointTransform(rotX, rotY, rotZ))
+        animator?.updateBoneMatrices()
+    }
+
+    fun resetToBindPose() {
+        for ((entity, bindMat) in initialBindTransforms) {
+            val instance = tm.getInstance(entity)
+            if (instance != 0) {
+                tm.setTransform(instance, bindMat)
+            }
+        }
+        animator?.updateBoneMatrices()
+    }
+
     fun applyPose(pose: AvatarPose) {
         applyJoint(rightShoulderEntity, pose.rightShoulder)
         applyJoint(rightUpperArmEntity, pose.rightUpperArm)
