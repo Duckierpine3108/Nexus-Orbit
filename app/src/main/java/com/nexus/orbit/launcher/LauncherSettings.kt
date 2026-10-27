@@ -15,6 +15,10 @@ class LauncherSettings(context: Context) {
         get() = prefs.getBoolean(KEY_IDLE_ROTATION, true)
         set(value) = prefs.edit().putBoolean(KEY_IDLE_ROTATION, value).apply()
 
+    var pauseDurationSeconds: Int
+        get() = prefs.getInt(KEY_PAUSE_DURATION, 5)
+        set(value) = prefs.edit().putInt(KEY_PAUSE_DURATION, value).apply()
+
     var animSpeed: Float
         get() = prefs.getFloat(KEY_ANIM_SPEED, 1.0f)
         set(value) = prefs.edit().putFloat(KEY_ANIM_SPEED, value).apply()
@@ -38,6 +42,7 @@ class LauncherSettings(context: Context) {
     companion object {
         private const val KEY_ORBIT_SPEED = "orbit_speed"
         private const val KEY_IDLE_ROTATION = "idle_rotation"
+        private const val KEY_PAUSE_DURATION = "pause_duration_seconds"
         private const val KEY_ANIM_SPEED = "anim_speed"
         private const val KEY_BRIGHTNESS = "room_brightness"
     }

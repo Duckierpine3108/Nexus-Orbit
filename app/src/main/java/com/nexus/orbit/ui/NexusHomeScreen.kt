@@ -1,15 +1,12 @@
 package com.nexus.orbit.ui
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
@@ -19,8 +16,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
@@ -37,6 +34,8 @@ import com.nexus.orbit.scene.AppRingController
 import com.nexus.orbit.scene.AvatarRigController
 import com.nexus.orbit.scene.NexusLauncherScene
 import com.nexus.orbit.ui.theme.*
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 
 @Composable
 fun NexusHomeScreen(
@@ -63,8 +62,23 @@ fun NexusHomeScreen(
         ringController.computeOrbit(apps.size, state.ringAngle, viewportWidth, viewportHeight)
     }
 
-    val frontItem = projectedApps.lastOrNull { it.isFront } ?: projectedApps.lastOrNull()
+    val frontItem = projectedApps.firstOrNull { it.isFront } ?: projectedApps.firstOrNull()
     val selectedApp: InstalledApp? = frontItem?.let { apps.getOrNull(it.index) }
+
+    // Idle rotation with 5-second interaction pause timer
+    LaunchedEffect(state.isDragging, state.isLaunching, settings.idleRotation, settings.pauseDurationSeconds, apps.size) {
+        while (isActive) {
+            val now = System.currentTimeMillis()
+            val pauseMs = settings.pauseDurationSeconds * 1000L
+            val isPaused = (now - state.lastInteractionTime) < pauseMs
+
+            if (!state.isDragging && !state.isLaunching && settings.idleRotation && !isPaused && apps.isNotEmpty()) {
+                val speed = 0.0022f * settings.orbitSpeed
+                state.ringAngle = (state.ringAngle + speed) % (2f * Math.PI.toFloat())
+            }
+            delay(16)
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -74,8 +88,33 @@ fun NexusHomeScreen(
                 viewportWidth = coordinates.size.width.toFloat()
                 viewportHeight = coordinates.size.height.toFloat()
             }
+            .pointerInput(state.isLaunching, apps.size) {
+                if (state.isLaunching || apps.isEmpty()) return@pointerInput
+                detectHorizontalDragGestures(
+                    onDragStart = {
+                        state.isDragging = true
+                        state.lastInteractionTime = System.currentTimeMillis()
+                    },
+                    onDragEnd = {
+                        state.isDragging = false
+                        state.lastInteractionTime = System.currentTimeMillis()
+                        // Snaps directly to the nearest app
+                        state.ringAngle = ringController.calculateSnapAngle(apps.size, state.ringAngle)
+                    },
+                    onDragCancel = {
+                        state.isDragging = false
+                        state.lastInteractionTime = System.currentTimeMillis()
+                    },
+                    onHorizontalDrag = { change, dragAmount ->
+                        change.consume()
+                        state.lastInteractionTime = System.currentTimeMillis()
+                        val sensitivity = 0.0035f * settings.orbitSpeed
+                        state.ringAngle -= dragAmount * sensitivity
+                    }
+                )
+            }
     ) {
-        // 1. Native 3D Room & Real Skinned Avatar
+        // 1. 3D Room & Lighted Avatar
         NexusLauncherScene(
             state = state,
             settings = settings,
@@ -83,10 +122,10 @@ fun NexusHomeScreen(
             modifier = Modifier.fillMaxSize()
         )
 
-        // 2. 3D Projected Orbital Application Ring
+        // 2. Visible Front Apps (Cleanly spaced without overlap)
         for (item in projectedApps) {
             val app = apps.getOrNull(item.index) ?: continue
-            val isSelected = (item.index == frontItem?.index)
+            val isSelected = item.isFront
 
             Box(
                 modifier = Modifier
@@ -99,7 +138,7 @@ fun NexusHomeScreen(
                     .alpha(item.alpha)
                     .then(
                         if (isSelected) {
-                            Modifier.border(2.dp, OrbitCyanAccent, CircleShape)
+                            Modifier.border(2.5.dp, OrbitCyanAccent, CircleShape)
                         } else Modifier
                     )
                     .clickable(enabled = !state.isLaunching) {
@@ -120,6 +159,11 @@ fun NexusHomeScreen(
                                     state.isLaunching = false
                                 }
                             )
+                        } else {
+                            // Tapping a side app immediately snaps it to center and pauses rotation
+                            state.lastInteractionTime = System.currentTimeMillis()
+                            val step = (2.0 * Math.PI / apps.size).toFloat()
+                            state.ringAngle = -item.index * step
                         }
                     },
                 contentAlignment = Alignment.Center
@@ -127,13 +171,12 @@ fun NexusHomeScreen(
                 Image(
                     bitmap = app.icon.asImageBitmap(),
                     contentDescription = app.label,
-                    modifier = Modifier
-                        .size(if (isSelected) 60.dp else 52.dp)
+                    modifier = Modifier.size(if (isSelected) 60.dp else 52.dp)
                 )
             }
         }
 
-        // 3. Front Selected App Name HUD
+        // 3. Selected App Label HUD
         if (selectedApp != null && !state.isLaunching) {
             Column(
                 modifier = Modifier
@@ -156,7 +199,7 @@ fun NexusHomeScreen(
             }
         }
 
-        // 4. Discreet Settings Entry Button
+        // 4. Discreet Settings Entry
         IconButton(
             onClick = { state.showSettings = true },
             modifier = Modifier
@@ -170,7 +213,6 @@ fun NexusHomeScreen(
             )
         }
 
-        // Settings Dialog Overlay
         if (state.showSettings) {
             LauncherSettingsScreen(
                 settings = settings,
@@ -183,7 +225,6 @@ fun NexusHomeScreen(
             )
         }
 
-        // Avatar Rig Diagnostics Screen
         if (state.showDiagnostics) {
             AvatarRigDiagnosticsScreen(
                 controller = rigController,

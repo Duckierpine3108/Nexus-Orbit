@@ -1,15 +1,13 @@
 package com.nexus.orbit.scene
 
 import kotlin.math.PI
+import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.sin
 
 data class ProjectedAppItem(
     val index: Int,
-    val angle: Float,
-    val posX: Float,
-    val posY: Float,
-    val posZ: Float,
+    val angleDiff: Float,
     val screenX: Float,
     val screenY: Float,
     val scale: Float,
@@ -17,14 +15,12 @@ data class ProjectedAppItem(
     val isFront: Boolean
 )
 
-class AppRingController(
-    private val radiusX: Float = 1.8f,
-    private val radiusZ: Float = 2.2f,
-    private val orbitCenterY: Float = 1.0f
-) {
-    /**
-     * Mathematical projection of orbiting application ring onto display viewport.
-     */
+class AppRingController {
+    companion object {
+        // Only render apps within ~80 degrees of the front center (culls the back half)
+        private const val MAX_VISIBLE_ANGLE = 1.40f
+    }
+
     fun computeOrbit(
         totalApps: Int,
         ringAngle: Float,
@@ -34,51 +30,62 @@ class AppRingController(
         if (totalApps <= 0) return emptyList()
 
         val step = (2.0 * PI / totalApps).toFloat()
-        val fovFactor = viewportHeight * 0.85f
-
         val list = mutableListOf<ProjectedAppItem>()
 
+        // Position the carousel in the lower-middle half (60% down)
+        // so the avatar's upper body and face are fully visible above it
+        val centerY = viewportHeight * 0.60f
+        val horizontalSpread = viewportWidth * 0.46f
+        val verticalCurve = 90f
+
         for (i in 0 until totalApps) {
-            // Angle around the avatar's vertical axis
-            val itemAngle = (ringAngle + i * step) % (2f * PI.toFloat())
-            val normalizedAngle = if (itemAngle < 0) itemAngle + 2f * PI.toFloat() else itemAngle
+            val rawAngle = (ringAngle + i * step) % (2f * PI.toFloat())
+            val normAngle = if (rawAngle < 0) rawAngle + (2f * PI.toFloat()) else rawAngle
 
-            // 3D Orbital Coordinates
-            val x3d = radiusX * sin(normalizedAngle)
-            val z3d = radiusZ * cos(normalizedAngle)
-            val y3d = orbitCenterY + 0.15f * cos(normalizedAngle)
+            // Angle difference relative to front center (0 radians)
+            val diff = when {
+                normAngle > PI -> normAngle - (2f * PI.toFloat())
+                else -> normAngle
+            }
 
-            // Perspective Camera math (Camera at Z = 3.6, Y = 1.25)
-            val camZ = 3.6f
-            val camY = 1.25f
-            val depth = (camZ - z3d).coerceAtLeast(0.4f)
-            val scale = (fovFactor / depth) / 1000f
+            // CULLING: Skip apps on the back half to eliminate overcrowding
+            if (abs(diff) > MAX_VISIBLE_ANGLE) {
+                continue
+            }
 
-            val screenX = (viewportWidth / 2f) + (x3d * scale * 340f)
-            val screenY = (viewportHeight / 2f) - ((y3d - camY) * scale * 340f)
+            val cosDiff = cos(diff)
+            val sinDiff = sin(diff)
 
-            // Far items fade naturally to preserve cinematic focus
-            val alpha = ((z3d + radiusZ) / (2f * radiusZ)).coerceIn(0.15f, 1.0f)
-            val isFront = (z3d >= radiusZ * 0.94f)
+            // Screen X: Wide spread across phone width
+            val screenX = (viewportWidth / 2f) + (sinDiff * horizontalSpread)
+
+            // Screen Y: Slight 3D downward curve towards the sides
+            val screenY = centerY + ((1f - cosDiff) * verticalCurve)
+
+            // Scale: Front selected app is 1.35x, sides scale down smoothly
+            val scale = 0.65f + (0.70f * (cosDiff * cosDiff))
+
+            // Alpha: Fades out naturally towards the screen edges
+            val alphaFactor = ((cosDiff - cos(MAX_VISIBLE_ANGLE)) / (1f - cos(MAX_VISIBLE_ANGLE))).coerceIn(0f, 1f)
+            val alpha = (0.25f + 0.75f * alphaFactor).coerceIn(0f, 1f)
+
+            val isFront = abs(diff) < (step * 0.5f).coerceAtMost(0.20f)
 
             list.add(
                 ProjectedAppItem(
                     index = i,
-                    angle = normalizedAngle,
-                    posX = x3d,
-                    posY = y3d,
-                    posZ = z3d,
+                    angleDiff = diff,
                     screenX = screenX,
                     screenY = screenY,
-                    scale = scale.coerceIn(0.5f, 1.55f),
+                    scale = scale,
                     alpha = alpha,
                     isFront = isFront
                 )
             )
         }
 
-        // Render back items first for correct depth occlusion
-        return list.sortedBy { it.posZ }
+        // Render outer items first so the center front item is drawn on top
+        return list.sortedBy { abs(it.angleDiff) }.reversed()
     }
 
     fun findFrontIndex(totalApps: Int, currentAngle: Float): Int {
@@ -88,10 +95,12 @@ class AppRingController(
         var minDiff = Float.MAX_VALUE
 
         for (i in 0 until totalApps) {
-            val angle = (currentAngle + i * step) % (2f * PI.toFloat())
-            val normalized = if (angle < 0) angle + 2f * PI.toFloat() else angle
-            // Target is 0 radians (front position)
-            val diff = Math.min(normalized, (2f * PI.toFloat() - normalized))
+            val rawAngle = (currentAngle + i * step) % (2f * PI.toFloat())
+            val normAngle = if (rawAngle < 0) rawAngle + (2f * PI.toFloat()) else rawAngle
+            val diff = when {
+                normAngle > PI -> abs(normAngle - (2f * PI.toFloat()))
+                else -> normAngle
+            }
             if (diff < minDiff) {
                 minDiff = diff
                 closestIdx = i

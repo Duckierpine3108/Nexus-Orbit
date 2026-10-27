@@ -27,11 +27,12 @@ fun LauncherSettingsScreen(
     val context = LocalContext.current
     var orbitSpeed by remember { mutableFloatStateOf(settings.orbitSpeed) }
     var idleRotation by remember { mutableStateOf(settings.idleRotation) }
+    var pauseDuration by remember { mutableIntStateOf(settings.pauseDurationSeconds) }
     var animSpeed by remember { mutableFloatStateOf(settings.animSpeed) }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
-        color = OrbitDeepBlack.copy(alpha = 0.95f)
+        color = OrbitDeepBlack.copy(alpha = 0.96f)
     ) {
         Column(
             modifier = Modifier
@@ -49,9 +50,8 @@ fun LauncherSettingsScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
-            // Set Default Home Shortcut
             Button(
                 onClick = {
                     val intent = Intent(Settings.ACTION_HOME_SETTINGS)
@@ -66,7 +66,6 @@ fun LauncherSettingsScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Idle Rotation Toggle
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -82,7 +81,21 @@ fun LauncherSettingsScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Pause duration setting (default 5s)
+            Text("Selection Pause Duration: ${pauseDuration}s", color = OrbitTextSecondary)
+            Slider(
+                value = pauseDuration.toFloat(),
+                onValueChange = {
+                    pauseDuration = it.toInt()
+                    settings.pauseDurationSeconds = it.toInt()
+                },
+                valueRange = 2f..15f,
+                steps = 12
+            )
+
+            Spacer(modifier = Modifier.height(14.dp))
 
             Text("Orbit Speed: ${String.format("%.1fx", orbitSpeed)}", color = OrbitTextSecondary)
             Slider(
@@ -94,7 +107,7 @@ fun LauncherSettingsScreen(
                 valueRange = 0.2f..3.0f
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
             Text("Avatar Animation Speed: ${String.format("%.1fx", animSpeed)}", color = OrbitTextSecondary)
             Slider(
@@ -106,7 +119,7 @@ fun LauncherSettingsScreen(
                 valueRange = 0.5f..2.5f
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
             Button(
                 onClick = {
