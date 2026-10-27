@@ -23,38 +23,39 @@ class LauncherSettings(context: Context) {
         get() = prefs.getFloat(KEY_ANIM_SPEED, 1.0f)
         set(value) = prefs.edit().putFloat(KEY_ANIM_SPEED, value).apply()
 
-    // Avatar Height & Scale Settings
+    // Avatar Framing: Default now set to your screenshot values, scale enlarged to fill screen
     var avatarOffsetY: Float
-        get() = prefs.getFloat("avatar_offset_y", -0.85f)
+        get() = prefs.getFloat("avatar_offset_y", 0.50f)
         set(value) = prefs.edit().putFloat("avatar_offset_y", value).apply()
 
     var avatarScale: Float
-        get() = prefs.getFloat("avatar_scale", 1.80f)
+        get() = prefs.getFloat("avatar_scale", 3.35f)
         set(value) = prefs.edit().putFloat("avatar_scale", value).apply()
 
-    // Arm Rotation Settings (degrees)
+    // Right Arm: Exact values from your screenshot
     var rightArmX: Float
-        get() = prefs.getFloat("arm_r_x", 0f)
+        get() = prefs.getFloat("arm_r_x", 80f)
         set(value) = prefs.edit().putFloat("arm_r_x", value).apply()
 
     var rightArmY: Float
-        get() = prefs.getFloat("arm_r_y", 0f)
+        get() = prefs.getFloat("arm_r_y", -2f)
         set(value) = prefs.edit().putFloat("arm_r_y", value).apply()
 
     var rightArmZ: Float
-        get() = prefs.getFloat("arm_r_z", -75f) // Default lowered along side
+        get() = prefs.getFloat("arm_r_z", -28f)
         set(value) = prefs.edit().putFloat("arm_r_z", value).apply()
 
+    // Left Arm: Exact values from your screenshot
     var leftArmX: Float
-        get() = prefs.getFloat("arm_l_x", 0f)
+        get() = prefs.getFloat("arm_l_x", 74f)
         set(value) = prefs.edit().putFloat("arm_l_x", value).apply()
 
     var leftArmY: Float
-        get() = prefs.getFloat("arm_l_y", 0f)
+        get() = prefs.getFloat("arm_l_y", 19f)
         set(value) = prefs.edit().putFloat("arm_l_y", value).apply()
 
     var leftArmZ: Float
-        get() = prefs.getFloat("arm_l_z", 75f) // Default lowered along side
+        get() = prefs.getFloat("arm_l_z", 13f)
         set(value) = prefs.edit().putFloat("arm_l_z", value).apply()
 
     fun resetDefaults() {

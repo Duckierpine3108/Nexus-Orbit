@@ -1,23 +1,28 @@
 package com.nexus.orbit.animation
 
+import com.nexus.orbit.launcher.LauncherSettings
 import com.nexus.orbit.scene.AvatarRigController
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 class AvatarAnimationController(
     private val rigController: AvatarRigController?,
+    private val settings: LauncherSettings,
     private val scope: CoroutineScope
 ) {
     private var activeJob: Job? = null
-    var currentPose: AvatarPose = AvatarPose.NEUTRAL_IDLE
-        private set
 
-    fun initializeNeutralPose() {
-        currentPose = AvatarPose.NEUTRAL_IDLE
-        rigController?.applyPose(currentPose)
+    fun resetToSavedNeutralPose() {
+        rigController?.updateCustomPose(
+            rX = settings.rightArmX,
+            rY = settings.rightArmY,
+            rZ = settings.rightArmZ,
+            lX = settings.leftArmX,
+            lY = settings.leftArmY,
+            lZ = settings.leftArmZ
+        )
     }
 
     fun executeAppLaunchSequence(
@@ -27,72 +32,85 @@ class AvatarAnimationController(
     ) {
         activeJob?.cancel()
         activeJob = scope.launch {
-            val stepDelay = 16L
             val speed = speedMultiplier.coerceIn(0.5f, 2.5f)
+            val stepDelay = 16L
 
-            // 1. NEUTRAL -> REACH (~180ms)
-            animateBetweenPoses(
-                from = AvatarPose.NEUTRAL_IDLE,
-                to = AvatarPose.REACH,
-                durationMs = (180 / speed).toLong(),
+            val startRx = settings.rightArmX
+            val startRy = settings.rightArmY
+            val startRz = settings.rightArmZ
+
+            // Left arm stays completely locked in your calibrated pose
+            val leftX = settings.leftArmX
+            val leftY = settings.leftArmY
+            val leftZ = settings.leftArmZ
+
+            // Right arm reach coordinates (smooth extension forward toward app)
+            val reachRx = 38f
+            val reachRy = 8f
+            val reachRz = -12f
+
+            // 1. NEUTRAL -> REACH (~190ms)
+            animateRightArm(
+                fromX = startRx, fromY = startRy, fromZ = startRz,
+                toX = reachRx, toY = reachRy, toZ = reachRz,
+                leftX = leftX, leftY = leftY, leftZ = leftZ,
+                durationMs = (190 / speed).toLong(),
                 stepDelay = stepDelay
             )
 
-            // 2. REACH -> GRAB (~100ms)
-            animateBetweenPoses(
-                from = AvatarPose.REACH,
-                to = AvatarPose.GRAB,
-                durationMs = (100 / speed).toLong(),
-                stepDelay = stepDelay
-            )
-
-            // 3. Trigger immediate OS launch at grasp point
+            // 2. Trigger real Android App Launch immediately
             onGrabTriggered()
 
-            // 4. GRAB -> STRETCH (~160ms) (Accompanies window expansion)
-            animateBetweenPoses(
-                from = AvatarPose.GRAB,
-                to = AvatarPose.STRETCH,
-                durationMs = (160 / speed).toLong(),
+            // 3. Subtle tap/pull extension (~110ms)
+            animateRightArm(
+                fromX = reachRx, fromY = reachRy, fromZ = reachRz,
+                toX = reachRx + 6f, toY = reachRy + 4f, toZ = reachRz - 4f,
+                leftX = leftX, leftY = leftY, leftZ = leftZ,
+                durationMs = (110 / speed).toLong(),
                 stepDelay = stepDelay
             )
 
-            // Brief hold during launch handoff
-            delay((60 / speed).toLong())
-
-            // 5. STRETCH -> RECOVERY to NEUTRAL (~300ms)
-            animateBetweenPoses(
-                from = AvatarPose.STRETCH,
-                to = AvatarPose.NEUTRAL_IDLE,
-                durationMs = (300 / speed).toLong(),
+            // 4. Smooth recovery back to your EXACT neutral pose (~240ms)
+            animateRightArm(
+                fromX = reachRx + 6f, fromY = reachRy + 4f, fromZ = reachRz - 4f,
+                toX = startRx, toY = startRy, toZ = startRz,
+                leftX = leftX, leftY = leftY, leftZ = leftZ,
+                durationMs = (240 / speed).toLong(),
                 stepDelay = stepDelay
             )
 
-            currentPose = AvatarPose.NEUTRAL_IDLE
+            // Final guarantee: strictly restore user pose
+            resetToSavedNeutralPose()
             onSequenceCompleted()
         }
     }
 
-    private suspend fun animateBetweenPoses(
-        from: AvatarPose,
-        to: AvatarPose,
+    private suspend fun animateRightArm(
+        fromX: Float, fromY: Float, fromZ: Float,
+        toX: Float, toY: Float, toZ: Float,
+        leftX: Float, leftY: Float, leftZ: Float,
         durationMs: Long,
         stepDelay: Long
     ) {
-        val totalSteps = (durationMs / stepDelay).coerceAtLeast(1)
-        for (step in 1..totalSteps) {
-            val fraction = step.toFloat() / totalSteps
-            // Smooth ease-out cubic
-            val eased = 1f - Math.pow((1.0 - fraction), 3.0).toFloat()
-            val blended = AvatarPose.lerp(from, to, eased)
-            currentPose = blended
-            rigController?.applyPose(blended)
+        val steps = (durationMs / stepDelay).coerceAtLeast(1)
+        for (i in 1..steps) {
+            val fraction = i.toFloat() / steps
+            val t = 1f - Math.pow((1.0 - fraction), 3.0).toFloat()
+
+            val curRx = fromX + (toX - fromX) * t
+            val curRy = fromY + (toY - fromY) * t
+            val curRz = fromZ + (toZ - fromZ) * t
+
+            rigController?.updateCustomPose(
+                rX = curRx, rY = curRy, rZ = curRz,
+                lX = leftX, lY = leftY, lZ = leftZ
+            )
             delay(stepDelay)
         }
     }
 
     fun cancelAndReset() {
         activeJob?.cancel()
-        initializeNeutralPose()
+        resetToSavedNeutralPose()
     }
 }

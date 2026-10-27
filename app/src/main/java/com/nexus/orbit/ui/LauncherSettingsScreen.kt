@@ -2,7 +2,6 @@ package com.nexus.orbit.ui
 
 import android.content.Intent
 import android.provider.Settings
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -49,10 +48,9 @@ fun LauncherSettingsScreen(
         rigController?.updateCustomPose(rX, rY, rZ, lX, lY, lZ)
     }
 
-    // Translucent background so you can watch the avatar move behind the panel
     Surface(
         modifier = Modifier.fillMaxSize(),
-        color = OrbitDeepBlack.copy(alpha = 0.82f)
+        color = OrbitDeepBlack.copy(alpha = 0.84f)
     ) {
         Column(
             modifier = Modifier
@@ -73,14 +71,14 @@ fun LauncherSettingsScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 1. Avatar Position & Height Card
+            // 1. Avatar Framing & Height (Expanded scale up to 5.50x)
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = OrbitSurfaceDark),
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Column(modifier = Modifier.padding(14.dp)) {
-                    Text("Avatar Framing & Height", color = OrbitCyanAccent, fontSize = 14.sp)
+                    Text("Avatar Framing & Screen Coverage", color = OrbitCyanAccent, fontSize = 14.sp)
 
                     Text("Vertical Position (Y): ${String.format("%.2f", avatarOffsetY)}m", color = OrbitTextSecondary, fontSize = 12.sp)
                     Slider(
@@ -89,7 +87,7 @@ fun LauncherSettingsScreen(
                             avatarOffsetY = it
                             settings.avatarOffsetY = it
                         },
-                        valueRange = -2.0f..0.5f
+                        valueRange = -1.0f..2.5f
                     )
 
                     Text("Avatar Size: ${String.format("%.2f", avatarScale)}x", color = OrbitTextSecondary, fontSize = 12.sp)
@@ -99,7 +97,7 @@ fun LauncherSettingsScreen(
                             avatarScale = it
                             settings.avatarScale = it
                         },
-                        valueRange = 1.0f..2.5f
+                        valueRange = 1.5f..5.5f
                     )
                 }
             }

@@ -11,6 +11,7 @@ import com.nexus.orbit.launcher.LauncherState
 import io.github.sceneview.Scene
 import io.github.sceneview.math.Position
 import io.github.sceneview.math.Rotation
+import io.github.sceneview.math.Scale
 import io.github.sceneview.node.ModelNode
 import io.github.sceneview.rememberCameraNode
 import io.github.sceneview.rememberEngine
@@ -29,19 +30,18 @@ fun NexusLauncherScene(
     val modelLoader = rememberModelLoader(engine)
 
     val mainLightNode = rememberMainLightNode(engine) {
-        intensity = 160_000.0f
+        intensity = 170_000.0f
         position = Position(x = 0.0f, y = 3.5f, z = 3.5f)
         rotation = Rotation(x = -30.0f, y = 0.0f, z = 0.0f)
     }
 
-    // Camera framed directly at chest/head level
+    // Closer camera distance (z = 2.35m) for screen-filling portrait view
     val cameraNode = rememberCameraNode(engine) {
-        position = Position(x = 0.0f, y = 0.85f, z = 2.85f)
-        rotation = Rotation(x = -1.5f, y = 0.0f, z = 0.0f)
+        position = Position(x = 0.0f, y = 0.95f, z = 2.35f)
+        rotation = Rotation(x = -1.0f, y = 0.0f, z = 0.0f)
     }
 
     var modelNode by remember { mutableStateOf<ModelNode?>(null) }
-    var rigController by remember { mutableStateOf<AvatarRigController?>(null) }
 
     LaunchedEffect(Unit) {
         val modelPath = "models/nexus_avatar.glb"
@@ -58,7 +58,6 @@ fun NexusLauncherScene(
                     modelInstance = modelInstance,
                     scaleToUnits = settings.avatarScale
                 ).apply {
-                    // Lower avatar so head and chest are centered
                     position = Position(x = 0f, y = settings.avatarOffsetY, z = 0f)
                 }
                 modelNode = node
@@ -68,10 +67,9 @@ fun NexusLauncherScene(
                     asset = modelInstance.asset,
                     animator = modelInstance.animator
                 )
-                rigController = controller
                 onRigControllerReady(controller)
 
-                // Apply initial lowered-arm pose
+                // Apply your exact calibrated numbers on launch
                 controller.updateCustomPose(
                     rX = settings.rightArmX,
                     rY = settings.rightArmY,
@@ -86,11 +84,11 @@ fun NexusLauncherScene(
         }
     }
 
-    // Re-apply live position & scale when adjusted in Settings
+    // Dynamic scale and height updates from Settings
     LaunchedEffect(settings.avatarOffsetY, settings.avatarScale) {
         modelNode?.let {
             it.position = Position(0f, settings.avatarOffsetY, 0f)
-            it.scale = io.github.sceneview.math.Scale(settings.avatarScale / 1.8f)
+            it.scale = Scale(settings.avatarScale / 1.8f)
         }
     }
 
@@ -100,7 +98,7 @@ fun NexusLauncherScene(
             engine = engine,
             modelLoader = modelLoader,
             cameraNode = cameraNode,
-            cameraManipulator = null, // Locks camera so touching screen never causes avatar to fly
+            cameraManipulator = null,
             mainLightNode = mainLightNode,
             childNodes = listOfNotNull(modelNode)
         )

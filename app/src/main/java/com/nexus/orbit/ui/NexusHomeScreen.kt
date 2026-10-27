@@ -19,10 +19,13 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import com.nexus.orbit.animation.AvatarAnimationController
 import com.nexus.orbit.launch.AppLaunchController
 import com.nexus.orbit.launch.LaunchOriginMapper
@@ -48,10 +51,25 @@ fun NexusHomeScreen(
     val scope = rememberCoroutineScope()
     val view = LocalView.current
     val density = LocalDensity.current.density
+    val lifecycleOwner = LocalLifecycleOwner.current
 
     var rigController by remember { mutableStateOf<AvatarRigController?>(null) }
-    val animController = remember(rigController) {
-        AvatarAnimationController(rigController, scope)
+    val animController = remember(rigController, settings) {
+        AvatarAnimationController(rigController, settings, scope)
+    }
+
+    // Lifecycle Observer: Resets hands to your calibrated pose whenever you return home from an app
+    DisposableEffect(lifecycleOwner, animController) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                state.isLaunching = false
+                animController.resetToSavedNeutralPose()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
     }
 
     val ringController = remember { AppRingController() }
@@ -65,7 +83,7 @@ fun NexusHomeScreen(
     val frontItem = projectedApps.firstOrNull { it.isFront } ?: projectedApps.firstOrNull()
     val selectedApp: InstalledApp? = frontItem?.let { apps.getOrNull(it.index) }
 
-    // Idle rotation with 5-second interaction pause timer
+    // Idle rotation with selection pause timer
     LaunchedEffect(state.isDragging, state.isLaunching, settings.idleRotation, settings.pauseDurationSeconds, apps.size) {
         while (isActive) {
             val now = System.currentTimeMillis()
@@ -98,7 +116,6 @@ fun NexusHomeScreen(
                     onDragEnd = {
                         state.isDragging = false
                         state.lastInteractionTime = System.currentTimeMillis()
-                        // Snaps directly to the nearest app
                         state.ringAngle = ringController.calculateSnapAngle(apps.size, state.ringAngle)
                     },
                     onDragCancel = {
@@ -114,7 +131,7 @@ fun NexusHomeScreen(
                 )
             }
     ) {
-        // 1. 3D Room & Lighted Avatar
+        // 1. Screen-filling 3D Room & Real Avatar
         NexusLauncherScene(
             state = state,
             settings = settings,
@@ -122,7 +139,7 @@ fun NexusHomeScreen(
             modifier = Modifier.fillMaxSize()
         )
 
-        // 2. Visible Front Apps (Cleanly spaced without overlap)
+        // 2. Visible Front Apps Carousel
         for (item in projectedApps) {
             val app = apps.getOrNull(item.index) ?: continue
             val isSelected = item.isFront
@@ -160,7 +177,6 @@ fun NexusHomeScreen(
                                 }
                             )
                         } else {
-                            // Tapping a side app immediately snaps it to center and pauses rotation
                             state.lastInteractionTime = System.currentTimeMillis()
                             val step = (2.0 * Math.PI / apps.size).toFloat()
                             state.ringAngle = -item.index * step
@@ -181,7 +197,7 @@ fun NexusHomeScreen(
             Column(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(bottom = 72.dp),
+                    .padding(bottom = 60.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
