@@ -35,10 +35,10 @@ fun NexusLauncherScene(
         rotation = Rotation(x = -30.0f, y = 0.0f, z = 0.0f)
     }
 
-    // Closer camera distance (z = 2.35m) for screen-filling portrait view
+    // Camera framed directly at chest/face height
     val cameraNode = rememberCameraNode(engine) {
-        position = Position(x = 0.0f, y = 0.95f, z = 2.35f)
-        rotation = Rotation(x = -1.0f, y = 0.0f, z = 0.0f)
+        position = Position(x = 0.0f, y = 1.05f, z = 2.50f)
+        rotation = Rotation(x = 0.0f, y = 0.0f, z = 0.0f)
     }
 
     var modelNode by remember { mutableStateOf<ModelNode?>(null) }
@@ -56,9 +56,10 @@ fun NexusLauncherScene(
             if (modelInstance != null) {
                 val node = ModelNode(
                     modelInstance = modelInstance,
-                    scaleToUnits = settings.avatarScale
+                    scaleToUnits = 1.80f
                 ).apply {
-                    position = Position(x = 0f, y = settings.avatarOffsetY, z = 0f)
+                    position = Position(x = 0f, y = state.avatarOffsetY, z = 0f)
+                    scale = Scale(state.avatarScale)
                 }
                 modelNode = node
 
@@ -69,14 +70,14 @@ fun NexusLauncherScene(
                 )
                 onRigControllerReady(controller)
 
-                // Apply your exact calibrated numbers on launch
+                // Apply initial calibrated arm pose
                 controller.updateCustomPose(
-                    rX = settings.rightArmX,
-                    rY = settings.rightArmY,
-                    rZ = settings.rightArmZ,
-                    lX = settings.leftArmX,
-                    lY = settings.leftArmY,
-                    lZ = settings.leftArmZ
+                    rX = state.rightArmX,
+                    rY = state.rightArmY,
+                    rZ = state.rightArmZ,
+                    lX = state.leftArmX,
+                    lY = state.leftArmY,
+                    lZ = state.leftArmZ
                 )
             }
         } catch (e: Exception) {
@@ -84,11 +85,11 @@ fun NexusLauncherScene(
         }
     }
 
-    // Dynamic scale and height updates from Settings
-    LaunchedEffect(settings.avatarOffsetY, settings.avatarScale) {
-        modelNode?.let {
-            it.position = Position(0f, settings.avatarOffsetY, 0f)
-            it.scale = Scale(settings.avatarScale / 1.8f)
+    // INSTANT LIVE UPDATES: When sliders move in Settings, the 3D model responds in real time!
+    LaunchedEffect(state.avatarOffsetY, state.avatarScale) {
+        modelNode?.let { node ->
+            node.position = Position(0f, state.avatarOffsetY, 0f)
+            node.scale = Scale(state.avatarScale)
         }
     }
 

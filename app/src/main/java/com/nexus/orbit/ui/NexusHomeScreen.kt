@@ -54,8 +54,8 @@ fun NexusHomeScreen(
     val lifecycleOwner = LocalLifecycleOwner.current
 
     var rigController by remember { mutableStateOf<AvatarRigController?>(null) }
-    val animController = remember(rigController, settings) {
-        AvatarAnimationController(rigController, settings, scope)
+    val animController = remember(rigController, state) {
+        AvatarAnimationController(rigController, state, scope)
     }
 
     // Lifecycle Observer: Resets hands to your calibrated pose whenever you return home from an app
@@ -231,6 +231,7 @@ fun NexusHomeScreen(
 
         if (state.showSettings) {
             LauncherSettingsScreen(
+                state = state,
                 settings = settings,
                 appRepository = repository,
                 rigController = rigController,

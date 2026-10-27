@@ -17,11 +17,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nexus.orbit.launcher.InstalledAppRepository
 import com.nexus.orbit.launcher.LauncherSettings
+import com.nexus.orbit.launcher.LauncherState
 import com.nexus.orbit.scene.AvatarRigController
 import com.nexus.orbit.ui.theme.*
 
 @Composable
 fun LauncherSettingsScreen(
+    state: LauncherState,
     settings: LauncherSettings,
     appRepository: InstalledAppRepository,
     rigController: AvatarRigController?,
@@ -30,27 +32,18 @@ fun LauncherSettingsScreen(
 ) {
     val context = LocalContext.current
     val scrollState = rememberScrollState()
-
-    var avatarOffsetY by remember { mutableFloatStateOf(settings.avatarOffsetY) }
-    var avatarScale by remember { mutableFloatStateOf(settings.avatarScale) }
-
-    var rX by remember { mutableFloatStateOf(settings.rightArmX) }
-    var rY by remember { mutableFloatStateOf(settings.rightArmY) }
-    var rZ by remember { mutableFloatStateOf(settings.rightArmZ) }
-
-    var lX by remember { mutableFloatStateOf(settings.leftArmX) }
-    var lY by remember { mutableFloatStateOf(settings.leftArmY) }
-    var lZ by remember { mutableFloatStateOf(settings.leftArmZ) }
-
     var pauseDuration by remember { mutableIntStateOf(settings.pauseDurationSeconds) }
 
     fun updateArmPose() {
-        rigController?.updateCustomPose(rX, rY, rZ, lX, lY, lZ)
+        rigController?.updateCustomPose(
+            state.rightArmX, state.rightArmY, state.rightArmZ,
+            state.leftArmX, state.leftArmY, state.leftArmZ
+        )
     }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
-        color = OrbitDeepBlack.copy(alpha = 0.84f)
+        color = OrbitDeepBlack.copy(alpha = 0.82f)
     ) {
         Column(
             modifier = Modifier
@@ -71,33 +64,33 @@ fun LauncherSettingsScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 1. Avatar Framing & Height (Expanded scale up to 5.50x)
+            // 1. Avatar Framing & Height (Interactive Live Sliders)
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = OrbitSurfaceDark),
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Column(modifier = Modifier.padding(14.dp)) {
-                    Text("Avatar Framing & Screen Coverage", color = OrbitCyanAccent, fontSize = 14.sp)
+                    Text("Avatar Framing (Live Adjustment)", color = OrbitCyanAccent, fontSize = 14.sp)
 
-                    Text("Vertical Position (Y): ${String.format("%.2f", avatarOffsetY)}m", color = OrbitTextSecondary, fontSize = 12.sp)
+                    Text("Vertical Position (Y): ${String.format("%.2f", state.avatarOffsetY)}m", color = OrbitTextSecondary, fontSize = 12.sp)
                     Slider(
-                        value = avatarOffsetY,
+                        value = state.avatarOffsetY,
                         onValueChange = {
-                            avatarOffsetY = it
+                            state.avatarOffsetY = it
                             settings.avatarOffsetY = it
                         },
-                        valueRange = -1.0f..2.5f
+                        valueRange = -1.5f..1.0f
                     )
 
-                    Text("Avatar Size: ${String.format("%.2f", avatarScale)}x", color = OrbitTextSecondary, fontSize = 12.sp)
+                    Text("Avatar Size / Zoom: ${String.format("%.2f", state.avatarScale)}x", color = OrbitTextSecondary, fontSize = 12.sp)
                     Slider(
-                        value = avatarScale,
+                        value = state.avatarScale,
                         onValueChange = {
-                            avatarScale = it
+                            state.avatarScale = it
                             settings.avatarScale = it
                         },
-                        valueRange = 1.5f..5.5f
+                        valueRange = 0.8f..2.5f
                     )
                 }
             }
@@ -113,14 +106,26 @@ fun LauncherSettingsScreen(
                 Column(modifier = Modifier.padding(14.dp)) {
                     Text("Right Arm Rotation (Degrees)", color = OrbitCyanAccent, fontSize = 14.sp)
 
-                    Text("Pitch (X): ${rX.toInt()}°", color = OrbitTextSecondary, fontSize = 12.sp)
-                    Slider(value = rX, onValueChange = { rX = it; settings.rightArmX = it; updateArmPose() }, valueRange = -180f..180f)
+                    Text("Pitch (X): ${state.rightArmX.toInt()}°", color = OrbitTextSecondary, fontSize = 12.sp)
+                    Slider(
+                        value = state.rightArmX,
+                        onValueChange = { state.rightArmX = it; settings.rightArmX = it; updateArmPose() },
+                        valueRange = -180f..180f
+                    )
 
-                    Text("Yaw (Y): ${rY.toInt()}°", color = OrbitTextSecondary, fontSize = 12.sp)
-                    Slider(value = rY, onValueChange = { rY = it; settings.rightArmY = it; updateArmPose() }, valueRange = -180f..180f)
+                    Text("Yaw (Y): ${state.rightArmY.toInt()}°", color = OrbitTextSecondary, fontSize = 12.sp)
+                    Slider(
+                        value = state.rightArmY,
+                        onValueChange = { state.rightArmY = it; settings.rightArmY = it; updateArmPose() },
+                        valueRange = -180f..180f
+                    )
 
-                    Text("Roll / Lower (Z): ${rZ.toInt()}°", color = OrbitTextSecondary, fontSize = 12.sp)
-                    Slider(value = rZ, onValueChange = { rZ = it; settings.rightArmZ = it; updateArmPose() }, valueRange = -180f..180f)
+                    Text("Roll / Lower (Z): ${state.rightArmZ.toInt()}°", color = OrbitTextSecondary, fontSize = 12.sp)
+                    Slider(
+                        value = state.rightArmZ,
+                        onValueChange = { state.rightArmZ = it; settings.rightArmZ = it; updateArmPose() },
+                        valueRange = -180f..180f
+                    )
                 }
             }
 
@@ -135,20 +140,32 @@ fun LauncherSettingsScreen(
                 Column(modifier = Modifier.padding(14.dp)) {
                     Text("Left Arm Rotation (Degrees)", color = OrbitCyanAccent, fontSize = 14.sp)
 
-                    Text("Pitch (X): ${lX.toInt()}°", color = OrbitTextSecondary, fontSize = 12.sp)
-                    Slider(value = lX, onValueChange = { lX = it; settings.leftArmX = it; updateArmPose() }, valueRange = -180f..180f)
+                    Text("Pitch (X): ${state.leftArmX.toInt()}°", color = OrbitTextSecondary, fontSize = 12.sp)
+                    Slider(
+                        value = state.leftArmX,
+                        onValueChange = { state.leftArmX = it; settings.leftArmX = it; updateArmPose() },
+                        valueRange = -180f..180f
+                    )
 
-                    Text("Yaw (Y): ${lY.toInt()}°", color = OrbitTextSecondary, fontSize = 12.sp)
-                    Slider(value = lY, onValueChange = { lY = it; settings.leftArmY = it; updateArmPose() }, valueRange = -180f..180f)
+                    Text("Yaw (Y): ${state.leftArmY.toInt()}°", color = OrbitTextSecondary, fontSize = 12.sp)
+                    Slider(
+                        value = state.leftArmY,
+                        onValueChange = { state.leftArmY = it; settings.leftArmY = it; updateArmPose() },
+                        valueRange = -180f..180f
+                    )
 
-                    Text("Roll / Lower (Z): ${lZ.toInt()}°", color = OrbitTextSecondary, fontSize = 12.sp)
-                    Slider(value = lZ, onValueChange = { lZ = it; settings.leftArmZ = it; updateArmPose() }, valueRange = -180f..180f)
+                    Text("Roll / Lower (Z): ${state.leftArmZ.toInt()}°", color = OrbitTextSecondary, fontSize = 12.sp)
+                    Slider(
+                        value = state.leftArmZ,
+                        onValueChange = { state.leftArmZ = it; settings.leftArmZ = it; updateArmPose() },
+                        valueRange = -180f..180f
+                    )
                 }
             }
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // 4. Launcher System Settings
+            // 4. Launcher Settings
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = OrbitSurfaceDark),

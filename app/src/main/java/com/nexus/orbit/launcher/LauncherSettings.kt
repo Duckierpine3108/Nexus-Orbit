@@ -23,16 +23,16 @@ class LauncherSettings(context: Context) {
         get() = prefs.getFloat(KEY_ANIM_SPEED, 1.0f)
         set(value) = prefs.edit().putFloat(KEY_ANIM_SPEED, value).apply()
 
-    // Avatar Framing: Default now set to your screenshot values, scale enlarged to fill screen
+    // Default framing: -0.35m offset centers chest and head
     var avatarOffsetY: Float
-        get() = prefs.getFloat("avatar_offset_y", 0.50f)
+        get() = prefs.getFloat("avatar_offset_y", -0.35f)
         set(value) = prefs.edit().putFloat("avatar_offset_y", value).apply()
 
     var avatarScale: Float
-        get() = prefs.getFloat("avatar_scale", 3.35f)
+        get() = prefs.getFloat("avatar_scale", 1.30f)
         set(value) = prefs.edit().putFloat("avatar_scale", value).apply()
 
-    // Right Arm: Exact values from your screenshot
+    // Calibrated Arm Angles
     var rightArmX: Float
         get() = prefs.getFloat("arm_r_x", 80f)
         set(value) = prefs.edit().putFloat("arm_r_x", value).apply()
@@ -45,7 +45,6 @@ class LauncherSettings(context: Context) {
         get() = prefs.getFloat("arm_r_z", -28f)
         set(value) = prefs.edit().putFloat("arm_r_z", value).apply()
 
-    // Left Arm: Exact values from your screenshot
     var leftArmX: Float
         get() = prefs.getFloat("arm_l_x", 74f)
         set(value) = prefs.edit().putFloat("arm_l_x", value).apply()

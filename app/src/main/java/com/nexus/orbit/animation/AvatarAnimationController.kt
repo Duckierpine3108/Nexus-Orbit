@@ -1,6 +1,6 @@
 package com.nexus.orbit.animation
 
-import com.nexus.orbit.launcher.LauncherSettings
+import com.nexus.orbit.launcher.LauncherState
 import com.nexus.orbit.scene.AvatarRigController
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -9,19 +9,19 @@ import kotlinx.coroutines.launch
 
 class AvatarAnimationController(
     private val rigController: AvatarRigController?,
-    private val settings: LauncherSettings,
+    private val state: LauncherState,
     private val scope: CoroutineScope
 ) {
     private var activeJob: Job? = null
 
     fun resetToSavedNeutralPose() {
         rigController?.updateCustomPose(
-            rX = settings.rightArmX,
-            rY = settings.rightArmY,
-            rZ = settings.rightArmZ,
-            lX = settings.leftArmX,
-            lY = settings.leftArmY,
-            lZ = settings.leftArmZ
+            rX = state.rightArmX,
+            rY = state.rightArmY,
+            rZ = state.rightArmZ,
+            lX = state.leftArmX,
+            lY = state.leftArmY,
+            lZ = state.leftArmZ
         )
     }
 
@@ -35,47 +35,41 @@ class AvatarAnimationController(
             val speed = speedMultiplier.coerceIn(0.5f, 2.5f)
             val stepDelay = 16L
 
-            val startRx = settings.rightArmX
-            val startRy = settings.rightArmY
-            val startRz = settings.rightArmZ
+            val startRx = state.rightArmX
+            val startRy = state.rightArmY
+            val startRz = state.rightArmZ
 
-            // Left arm stays completely locked in your calibrated pose
-            val leftX = settings.leftArmX
-            val leftY = settings.leftArmY
-            val leftZ = settings.leftArmZ
+            // Left arm is locked 100% still in your pose
+            val leftX = state.leftArmX
+            val leftY = state.leftArmY
+            val leftZ = state.leftArmZ
 
-            // Right arm reach coordinates (smooth extension forward toward app)
-            val reachRx = 38f
-            val reachRy = 8f
-            val reachRz = -12f
+            // Right arm reach coordinates (smooth extension toward front app)
+            val reachRx = 45f
+            val reachRy = 5f
+            val reachRz = -15f
 
-            // 1. NEUTRAL -> REACH (~190ms)
+            // 1. NEUTRAL -> REACH (~180ms)
             animateRightArm(
                 fromX = startRx, fromY = startRy, fromZ = startRz,
                 toX = reachRx, toY = reachRy, toZ = reachRz,
                 leftX = leftX, leftY = leftY, leftZ = leftZ,
-                durationMs = (190 / speed).toLong(),
+                durationMs = (180 / speed).toLong(),
                 stepDelay = stepDelay
             )
 
-            // 2. Trigger real Android App Launch immediately
+            // 2. Trigger real Android App Launch
             onGrabTriggered()
 
-            // 3. Subtle tap/pull extension (~110ms)
+            // 3. Subtle pulse (~100ms)
+            delay((100 / speed).toLong())
+
+            // 4. Smooth recovery back to your calibrated neutral numbers (~220ms)
             animateRightArm(
                 fromX = reachRx, fromY = reachRy, fromZ = reachRz,
-                toX = reachRx + 6f, toY = reachRy + 4f, toZ = reachRz - 4f,
-                leftX = leftX, leftY = leftY, leftZ = leftZ,
-                durationMs = (110 / speed).toLong(),
-                stepDelay = stepDelay
-            )
-
-            // 4. Smooth recovery back to your EXACT neutral pose (~240ms)
-            animateRightArm(
-                fromX = reachRx + 6f, fromY = reachRy + 4f, fromZ = reachRz - 4f,
                 toX = startRx, toY = startRy, toZ = startRz,
                 leftX = leftX, leftY = leftY, leftZ = leftZ,
-                durationMs = (240 / speed).toLong(),
+                durationMs = (220 / speed).toLong(),
                 stepDelay = stepDelay
             )
 
