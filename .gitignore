@@ -1,0 +1,19 @@
+# Gradle & Android Build Caches
+*.iml
+.gradle
+/local.properties
+/.idea/
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+
+# Keystores and binaries
+*.apk
+*.aab
+*.jks
+*.keystore
+
+# Ensure your avatar asset is always tracked
+!app/src/main/assets/models/nexus_avatar.glb

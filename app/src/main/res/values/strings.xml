@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">NEXUS ORBIT</string>
+    <string name="orbit_settings">Orbit Settings</string>
+    <string name="avatar_diagnostics">Avatar Rig Diagnostics</string>
+    <string name="set_default_home">Set as Default Launcher</string>
+    <string name="refresh_apps">Refresh Installed Applications</string>
+    <string name="idle_rotation">Idle Orbital Rotation</string>
+    <string name="orbit_speed">Orbit Rotation Speed</string>
+    <string name="anim_speed">Avatar Animation Speed</string>
+    <string name="room_brightness">Room Light Intensity</string>
+</resources>
