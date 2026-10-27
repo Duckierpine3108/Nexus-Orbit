@@ -23,17 +23,39 @@ class LauncherSettings(context: Context) {
         get() = prefs.getFloat(KEY_ANIM_SPEED, 1.0f)
         set(value) = prefs.edit().putFloat(KEY_ANIM_SPEED, value).apply()
 
-    var roomBrightness: Float
-        get() = prefs.getFloat(KEY_BRIGHTNESS, 1.0f)
-        set(value) = prefs.edit().putFloat(KEY_BRIGHTNESS, value).apply()
+    // Avatar Height & Scale Settings
+    var avatarOffsetY: Float
+        get() = prefs.getFloat("avatar_offset_y", -0.85f)
+        set(value) = prefs.edit().putFloat("avatar_offset_y", value).apply()
 
-    fun getJointMapping(role: String, defaultName: String): String {
-        return prefs.getString("joint_role_$role", defaultName) ?: defaultName
-    }
+    var avatarScale: Float
+        get() = prefs.getFloat("avatar_scale", 1.80f)
+        set(value) = prefs.edit().putFloat("avatar_scale", value).apply()
 
-    fun setJointMapping(role: String, boneName: String) {
-        prefs.edit().putString("joint_role_$role", boneName).apply()
-    }
+    // Arm Rotation Settings (degrees)
+    var rightArmX: Float
+        get() = prefs.getFloat("arm_r_x", 0f)
+        set(value) = prefs.edit().putFloat("arm_r_x", value).apply()
+
+    var rightArmY: Float
+        get() = prefs.getFloat("arm_r_y", 0f)
+        set(value) = prefs.edit().putFloat("arm_r_y", value).apply()
+
+    var rightArmZ: Float
+        get() = prefs.getFloat("arm_r_z", -75f) // Default lowered along side
+        set(value) = prefs.edit().putFloat("arm_r_z", value).apply()
+
+    var leftArmX: Float
+        get() = prefs.getFloat("arm_l_x", 0f)
+        set(value) = prefs.edit().putFloat("arm_l_x", value).apply()
+
+    var leftArmY: Float
+        get() = prefs.getFloat("arm_l_y", 0f)
+        set(value) = prefs.edit().putFloat("arm_l_y", value).apply()
+
+    var leftArmZ: Float
+        get() = prefs.getFloat("arm_l_z", 75f) // Default lowered along side
+        set(value) = prefs.edit().putFloat("arm_l_z", value).apply()
 
     fun resetDefaults() {
         prefs.edit().clear().apply()
@@ -44,6 +66,5 @@ class LauncherSettings(context: Context) {
         private const val KEY_IDLE_ROTATION = "idle_rotation"
         private const val KEY_PAUSE_DURATION = "pause_duration_seconds"
         private const val KEY_ANIM_SPEED = "anim_speed"
-        private const val KEY_BRIGHTNESS = "room_brightness"
     }
 }

@@ -2,12 +2,12 @@ package com.nexus.orbit.scene
 
 import kotlin.math.PI
 import kotlin.math.abs
-import kotlin.math.cos
+import kotlin.math.roundToInt
 import kotlin.math.sin
 
 data class ProjectedAppItem(
     val index: Int,
-    val angleDiff: Float,
+    val relPos: Float,
     val screenX: Float,
     val screenY: Float,
     val scale: Float,
@@ -16,11 +16,11 @@ data class ProjectedAppItem(
 )
 
 class AppRingController {
-    companion object {
-        // Only render apps within ~80 degrees of the front center (culls the back half)
-        private const val MAX_VISIBLE_ANGLE = 1.40f
-    }
-
+    /**
+     * 5-slot continuous 3D carousel.
+     * Only 5 apps (center, 2 left, 2 right) are visible at any given moment.
+     * Eliminates overlapping stacks completely.
+     */
     fun computeOrbit(
         totalApps: Int,
         ringAngle: Float,
@@ -30,51 +30,32 @@ class AppRingController {
         if (totalApps <= 0) return emptyList()
 
         val step = (2.0 * PI / totalApps).toFloat()
+        val floatCenter = -ringAngle / step
+        val baseIndex = floatCenter.roundToInt()
+
         val list = mutableListOf<ProjectedAppItem>()
+        val centerY = viewportHeight * 0.62f
+        val horizontalSpread = viewportWidth * 0.44f
 
-        // Position the carousel in the lower-middle half (60% down)
-        // so the avatar's upper body and face are fully visible above it
-        val centerY = viewportHeight * 0.60f
-        val horizontalSpread = viewportWidth * 0.46f
-        val verticalCurve = 90f
+        for (slot in -3..3) {
+            val appIndex = ((baseIndex + slot) % totalApps + totalApps) % totalApps
+            val relPos = slot - (floatCenter - baseIndex)
 
-        for (i in 0 until totalApps) {
-            val rawAngle = (ringAngle + i * step) % (2f * PI.toFloat())
-            val normAngle = if (rawAngle < 0) rawAngle + (2f * PI.toFloat()) else rawAngle
+            if (abs(relPos) > 2.6f) continue
 
-            // Angle difference relative to front center (0 radians)
-            val diff = when {
-                normAngle > PI -> normAngle - (2f * PI.toFloat())
-                else -> normAngle
-            }
+            val u = (relPos / 2.6f).coerceIn(-1.0f, 1.0f)
+            val screenX = (viewportWidth / 2f) + sin(u * (PI.toFloat() / 2f)) * horizontalSpread
+            val screenY = centerY + (u * u * 45f)
 
-            // CULLING: Skip apps on the back half to eliminate overcrowding
-            if (abs(diff) > MAX_VISIBLE_ANGLE) {
-                continue
-            }
-
-            val cosDiff = cos(diff)
-            val sinDiff = sin(diff)
-
-            // Screen X: Wide spread across phone width
-            val screenX = (viewportWidth / 2f) + (sinDiff * horizontalSpread)
-
-            // Screen Y: Slight 3D downward curve towards the sides
-            val screenY = centerY + ((1f - cosDiff) * verticalCurve)
-
-            // Scale: Front selected app is 1.35x, sides scale down smoothly
-            val scale = 0.65f + (0.70f * (cosDiff * cosDiff))
-
-            // Alpha: Fades out naturally towards the screen edges
-            val alphaFactor = ((cosDiff - cos(MAX_VISIBLE_ANGLE)) / (1f - cos(MAX_VISIBLE_ANGLE))).coerceIn(0f, 1f)
-            val alpha = (0.25f + 0.75f * alphaFactor).coerceIn(0f, 1f)
-
-            val isFront = abs(diff) < (step * 0.5f).coerceAtMost(0.20f)
+            val absU = abs(u)
+            val scale = (1.30f - absU * 0.60f).coerceIn(0.65f, 1.35f)
+            val alpha = (1.0f - absU * 0.75f).coerceIn(0.15f, 1.0f)
+            val isFront = abs(relPos) < 0.35f
 
             list.add(
                 ProjectedAppItem(
-                    index = i,
-                    angleDiff = diff,
+                    index = appIndex,
+                    relPos = relPos,
                     screenX = screenX,
                     screenY = screenY,
                     scale = scale,
@@ -84,35 +65,22 @@ class AppRingController {
             )
         }
 
-        // Render outer items first so the center front item is drawn on top
-        return list.sortedBy { abs(it.angleDiff) }.reversed()
+        return list.sortedBy { abs(it.relPos) }.reversed()
     }
 
     fun findFrontIndex(totalApps: Int, currentAngle: Float): Int {
         if (totalApps <= 0) return 0
         val step = (2.0 * PI / totalApps).toFloat()
-        var closestIdx = 0
-        var minDiff = Float.MAX_VALUE
-
-        for (i in 0 until totalApps) {
-            val rawAngle = (currentAngle + i * step) % (2f * PI.toFloat())
-            val normAngle = if (rawAngle < 0) rawAngle + (2f * PI.toFloat()) else rawAngle
-            val diff = when {
-                normAngle > PI -> abs(normAngle - (2f * PI.toFloat()))
-                else -> normAngle
-            }
-            if (diff < minDiff) {
-                minDiff = diff
-                closestIdx = i
-            }
-        }
-        return closestIdx
+        val floatCenter = -currentAngle / step
+        val nearest = floatCenter.roundToInt()
+        return ((nearest % totalApps) + totalApps) % totalApps
     }
 
     fun calculateSnapAngle(totalApps: Int, currentAngle: Float): Float {
         if (totalApps <= 0) return currentAngle
         val step = (2.0 * PI / totalApps).toFloat()
-        val targetIndex = findFrontIndex(totalApps, currentAngle)
-        return -targetIndex * step
+        val floatCenter = -currentAngle / step
+        val nearest = floatCenter.roundToInt()
+        return -nearest * step
     }
 }

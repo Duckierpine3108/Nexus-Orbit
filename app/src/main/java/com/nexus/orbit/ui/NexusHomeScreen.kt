@@ -217,6 +217,7 @@ fun NexusHomeScreen(
             LauncherSettingsScreen(
                 settings = settings,
                 appRepository = repository,
+                rigController = rigController,
                 onOpenDiagnostics = {
                     state.showSettings = false
                     state.showDiagnostics = true

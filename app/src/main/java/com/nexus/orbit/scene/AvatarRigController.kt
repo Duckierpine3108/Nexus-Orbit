@@ -51,7 +51,7 @@ class AvatarRigController(
                 }
             }
         }
-        Log.d("AvatarRigController", "Discovered ${discoveredJoints.size} named entities in GLB rig.")
+        Log.d("AvatarRigController", "Discovered ${discoveredJoints.size} joints.")
     }
 
     private fun autoMapJointRoles() {
@@ -76,8 +76,7 @@ class AvatarRigController(
         )
         rightForearmEntity = findEntity(
             Regex("(?i).*(right|r_).*forearm.*"),
-            Regex("(?i).*(right|r_).*lowerarm.*"),
-            Regex("(?i).*forearm.*r.*")
+            Regex("(?i).*(right|r_).*lowerarm.*")
         )
         rightHandEntity = findEntity(
             Regex("(?i).*(right|r_).*hand.*"),
@@ -86,8 +85,7 @@ class AvatarRigController(
 
         leftShoulderEntity = findEntity(
             Regex("(?i).*(left|l_).*shoulder.*"),
-            Regex("(?i).*(left|l_).*clavicle.*"),
-            Regex("(?i).*clavicle.*l.*")
+            Regex("(?i).*(left|l_).*clavicle.*")
         )
         leftUpperArmEntity = findEntity(
             Regex("(?i).*(left|l_).*upperarm.*"),
@@ -99,8 +97,7 @@ class AvatarRigController(
             Regex("(?i).*(left|l_).*lowerarm.*")
         )
         leftHandEntity = findEntity(
-            Regex("(?i).*(left|l_).*hand.*"),
-            Regex("(?i).*(left|l_).*wrist.*")
+            Regex("(?i).*(left|l_).*hand.*")
         )
 
         spineEntity = findEntity(
@@ -108,6 +105,22 @@ class AvatarRigController(
             Regex("(?i).*spine.*"),
             Regex("(?i).*chest.*")
         )
+    }
+
+    fun updateCustomPose(
+        rX: Float, rY: Float, rZ: Float,
+        lX: Float, lY: Float, lZ: Float
+    ) {
+        val targetRight = if (rightUpperArmEntity != 0) rightUpperArmEntity else rightShoulderEntity
+        val targetLeft = if (leftUpperArmEntity != 0) leftUpperArmEntity else leftShoulderEntity
+
+        if (targetRight != 0) {
+            applyJoint(targetRight, JointTransform(rX, rY, rZ))
+        }
+        if (targetLeft != 0) {
+            applyJoint(targetLeft, JointTransform(lX, lY, lZ))
+        }
+        animator?.updateBoneMatrices()
     }
 
     fun applyPose(pose: AvatarPose) {
@@ -121,7 +134,6 @@ class AvatarRigController(
         applyJoint(leftForearmEntity, pose.leftForearm)
         applyJoint(spineEntity, pose.spine)
 
-        // Propagate transforms into the GPU skinning buffers
         animator?.updateBoneMatrices()
     }
 

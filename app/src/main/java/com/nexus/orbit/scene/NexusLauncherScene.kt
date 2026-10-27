@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import com.nexus.orbit.animation.AvatarPose
 import com.nexus.orbit.launcher.LauncherSettings
 import com.nexus.orbit.launcher.LauncherState
 import io.github.sceneview.Scene
@@ -29,27 +28,27 @@ fun NexusLauncherScene(
     val engine = rememberEngine()
     val modelLoader = rememberModelLoader(engine)
 
-    // Key Light: High intensity directional light to illuminate avatar against black background
     val mainLightNode = rememberMainLightNode(engine) {
         intensity = 160_000.0f
-        position = Position(x = 0.0f, y = 3.2f, z = 3.5f)
+        position = Position(x = 0.0f, y = 3.5f, z = 3.5f)
         rotation = Rotation(x = -30.0f, y = 0.0f, z = 0.0f)
     }
 
-    // Camera framed on the avatar's upper body and chest
+    // Camera framed directly at chest/head level
     val cameraNode = rememberCameraNode(engine) {
-        position = Position(x = 0.0f, y = 1.15f, z = 3.1f)
-        rotation = Rotation(x = -2.0f, y = 0.0f, z = 0.0f)
+        position = Position(x = 0.0f, y = 0.85f, z = 2.85f)
+        rotation = Rotation(x = -1.5f, y = 0.0f, z = 0.0f)
     }
 
     var modelNode by remember { mutableStateOf<ModelNode?>(null) }
+    var rigController by remember { mutableStateOf<AvatarRigController?>(null) }
 
     LaunchedEffect(Unit) {
         val modelPath = "models/nexus_avatar.glb"
         try {
             val assetExists = context.assets.list("models")?.contains("nexus_avatar.glb") == true
             if (!assetExists) {
-                Log.e("NexusLauncherScene", "nexus_avatar.glb not found in assets/models/")
+                Log.e("NexusLauncherScene", "nexus_avatar.glb not found")
                 return@LaunchedEffect
             }
 
@@ -57,9 +56,10 @@ fun NexusLauncherScene(
             if (modelInstance != null) {
                 val node = ModelNode(
                     modelInstance = modelInstance,
-                    scaleToUnits = 1.82f
+                    scaleToUnits = settings.avatarScale
                 ).apply {
-                    position = Position(x = 0f, y = 0f, z = 0f)
+                    // Lower avatar so head and chest are centered
+                    position = Position(x = 0f, y = settings.avatarOffsetY, z = 0f)
                 }
                 modelNode = node
 
@@ -68,11 +68,29 @@ fun NexusLauncherScene(
                     asset = modelInstance.asset,
                     animator = modelInstance.animator
                 )
+                rigController = controller
                 onRigControllerReady(controller)
-                controller.applyPose(AvatarPose.NEUTRAL_IDLE)
+
+                // Apply initial lowered-arm pose
+                controller.updateCustomPose(
+                    rX = settings.rightArmX,
+                    rY = settings.rightArmY,
+                    rZ = settings.rightArmZ,
+                    lX = settings.leftArmX,
+                    lY = settings.leftArmY,
+                    lZ = settings.leftArmZ
+                )
             }
         } catch (e: Exception) {
             Log.e("NexusLauncherScene", "Error loading avatar GLB", e)
+        }
+    }
+
+    // Re-apply live position & scale when adjusted in Settings
+    LaunchedEffect(settings.avatarOffsetY, settings.avatarScale) {
+        modelNode?.let {
+            it.position = Position(0f, settings.avatarOffsetY, 0f)
+            it.scale = io.github.sceneview.math.Scale(settings.avatarScale / 1.8f)
         }
     }
 
@@ -82,6 +100,7 @@ fun NexusLauncherScene(
             engine = engine,
             modelLoader = modelLoader,
             cameraNode = cameraNode,
+            cameraManipulator = null, // Locks camera so touching screen never causes avatar to fly
             mainLightNode = mainLightNode,
             childNodes = listOfNotNull(modelNode)
         )
