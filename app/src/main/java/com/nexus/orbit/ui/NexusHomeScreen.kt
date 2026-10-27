@@ -13,19 +13,15 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
 import com.nexus.orbit.animation.AvatarAnimationController
 import com.nexus.orbit.launch.AppLaunchController
 import com.nexus.orbit.launch.LaunchOriginMapper
@@ -51,7 +47,6 @@ fun NexusHomeScreen(
     val scope = rememberCoroutineScope()
     val view = LocalView.current
     val density = LocalDensity.current.density
-    val lifecycleOwner = LocalLifecycleOwner.current
 
     var rigController by remember { mutableStateOf<AvatarRigController?>(null) }
     val animController = remember(rigController, state) {
@@ -66,16 +61,10 @@ fun NexusHomeScreen(
         }
     }
 
-    DisposableEffect(lifecycleOwner, animController) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                state.isLaunching = false
-                animController.resetToSavedNeutralPose()
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
+    // Automatically resets avatar to your calibrated pose whenever returning from any app
+    LaunchedEffect(state.isLaunching) {
+        if (!state.isLaunching) {
+            animController.resetToSavedNeutralPose()
         }
     }
 
@@ -150,7 +139,7 @@ fun NexusHomeScreen(
             val app = apps.getOrNull(item.index) ?: continue
             val isSelected = item.isFront
 
-            // If this is the launching app, apply the dynamic grab-and-stretch scale!
+            // Dynamic grab-and-stretch scaling applied via hardware graphics layer
             val scaleX = if (isSelected && state.isLaunching) item.scale * state.iconStretchX else item.scale
             val scaleY = if (isSelected && state.isLaunching) item.scale * state.iconStretchY else item.scale
             val currentAlpha = if (isSelected && state.isLaunching) state.iconStretchAlpha else item.alpha
@@ -162,8 +151,11 @@ fun NexusHomeScreen(
                         y = (item.screenY / density).dp - 36.dp
                     )
                     .size(72.dp)
-                    .scale(scaleX = scaleX, scaleY = scaleY)
-                    .alpha(currentAlpha)
+                    .graphicsLayer {
+                        this.scaleX = scaleX
+                        this.scaleY = scaleY
+                        this.alpha = currentAlpha
+                    }
                     .then(
                         if (isSelected) {
                             Modifier.border(2.5.dp, OrbitCyanAccent, CircleShape)

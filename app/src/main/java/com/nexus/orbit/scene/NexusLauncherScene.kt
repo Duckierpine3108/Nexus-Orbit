@@ -35,7 +35,6 @@ fun NexusLauncherScene(
         rotation = Rotation(x = -30.0f, y = 0.0f, z = 0.0f)
     }
 
-    // Camera framed directly at chest/face height
     val cameraNode = rememberCameraNode(engine) {
         position = Position(x = 0.0f, y = 1.05f, z = 2.50f)
         rotation = Rotation(x = 0.0f, y = 0.0f, z = 0.0f)
@@ -59,7 +58,7 @@ fun NexusLauncherScene(
                     scaleToUnits = 1.80f
                 ).apply {
                     position = Position(x = 0f, y = state.avatarOffsetY, z = 0f)
-                    scale = Scale(state.avatarScale)
+                    scale = Scale(state.avatarScale, state.avatarScale, state.avatarScale)
                 }
                 modelNode = node
 
@@ -70,7 +69,6 @@ fun NexusLauncherScene(
                 )
                 onRigControllerReady(controller)
 
-                // Apply initial calibrated arm pose
                 controller.updateCustomPose(
                     rX = state.rightArmX,
                     rY = state.rightArmY,
@@ -79,17 +77,17 @@ fun NexusLauncherScene(
                     lY = state.leftArmY,
                     lZ = state.leftArmZ
                 )
+                controller.updateHeadPose(state.headPitch, state.headYaw)
             }
         } catch (e: Exception) {
             Log.e("NexusLauncherScene", "Error loading avatar GLB", e)
         }
     }
 
-    // INSTANT LIVE UPDATES: When sliders move in Settings, the 3D model responds in real time!
     LaunchedEffect(state.avatarOffsetY, state.avatarScale) {
         modelNode?.let { node ->
             node.position = Position(0f, state.avatarOffsetY, 0f)
-            node.scale = Scale(state.avatarScale)
+            node.scale = Scale(state.avatarScale, state.avatarScale, state.avatarScale)
         }
     }
 
