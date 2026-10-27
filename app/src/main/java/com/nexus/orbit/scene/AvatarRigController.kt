@@ -57,63 +57,78 @@ class AvatarRigController(
     }
 
     private fun autoMapJointRoles() {
-        fun findEntity(vararg patterns: Regex): Int {
-            for (p in patterns) {
-                for ((name, entity) in discoveredJoints) {
+        // Excludes 3D mesh surfaces (e.g. Wolf3D_Head, Wolf3D_Body) so we strictly target skeleton bones!
+        fun findBoneEntity(vararg patterns: Regex): Int {
+            for ((name, entity) in discoveredJoints) {
+                val isMesh = name.startsWith("Wolf3D", ignoreCase = true) ||
+                             name.contains("mesh", ignoreCase = true) ||
+                             name.contains("body", ignoreCase = true) ||
+                             name.contains("hair", ignoreCase = true) ||
+                             name.contains("teeth", ignoreCase = true) ||
+                             name.contains("eye", ignoreCase = true)
+                if (isMesh) continue
+
+                for (p in patterns) {
                     if (p.containsMatchIn(name)) return entity
                 }
             }
             return 0
         }
 
-        rightShoulderEntity = findEntity(
-            Regex("(?i).*(right|r_).*shoulder.*"),
-            Regex("(?i).*(right|r_).*clavicle.*"),
-            Regex("(?i).*clavicle.*r.*")
+        rightShoulderEntity = findBoneEntity(
+            Regex("(?i)^.*right.*shoulder.*$"),
+            Regex("(?i)^.*right.*clavicle.*$"),
+            Regex("(?i)^.*clavicle.*r.*$")
         )
-        rightUpperArmEntity = findEntity(
-            Regex("(?i).*(right|r_).*upperarm.*"),
-            Regex("(?i).*(right|r_).*arm.*"),
-            Regex("(?i).*arm.*r.*")
+        rightUpperArmEntity = findBoneEntity(
+            Regex("(?i)^.*right.*upperarm.*$"),
+            Regex("(?i)^.*rightarm.*$"),
+            Regex("(?i)^.*arm.*r.*$")
         )
-        rightForearmEntity = findEntity(
-            Regex("(?i).*(right|r_).*forearm.*"),
-            Regex("(?i).*(right|r_).*lowerarm.*")
+        rightForearmEntity = findBoneEntity(
+            Regex("(?i)^.*right.*forearm.*$"),
+            Regex("(?i)^.*right.*lowerarm.*$"),
+            Regex("(?i)^.*forearm.*r.*$")
         )
-        rightHandEntity = findEntity(
-            Regex("(?i).*(right|r_).*hand.*"),
-            Regex("(?i).*(right|r_).*wrist.*")
-        )
-
-        leftShoulderEntity = findEntity(
-            Regex("(?i).*(left|l_).*shoulder.*"),
-            Regex("(?i).*(left|l_).*clavicle.*")
-        )
-        leftUpperArmEntity = findEntity(
-            Regex("(?i).*(left|l_).*upperarm.*"),
-            Regex("(?i).*(left|l_).*arm.*"),
-            Regex("(?i).*arm.*l.*")
-        )
-        leftForearmEntity = findEntity(
-            Regex("(?i).*(left|l_).*forearm.*"),
-            Regex("(?i).*(left|l_).*lowerarm.*")
-        )
-        leftHandEntity = findEntity(
-            Regex("(?i).*(left|l_).*hand.*")
+        rightHandEntity = findBoneEntity(
+            Regex("(?i)^.*right.*hand.*$"),
+            Regex("(?i)^.*right.*wrist.*$")
         )
 
-        spineEntity = findEntity(
-            Regex("(?i).*spine1.*"),
-            Regex("(?i).*spine.*"),
-            Regex("(?i).*chest.*")
+        leftShoulderEntity = findBoneEntity(
+            Regex("(?i)^.*left.*shoulder.*$"),
+            Regex("(?i)^.*left.*clavicle.*$")
+        )
+        leftUpperArmEntity = findBoneEntity(
+            Regex("(?i)^.*left.*upperarm.*$"),
+            Regex("(?i)^.*leftarm.*$"),
+            Regex("(?i)^.*arm.*l.*$")
+        )
+        leftForearmEntity = findBoneEntity(
+            Regex("(?i)^.*left.*forearm.*$"),
+            Regex("(?i)^.*left.*lowerarm.*$"),
+            Regex("(?i)^.*forearm.*l.*$")
+        )
+        leftHandEntity = findBoneEntity(
+            Regex("(?i)^.*left.*hand.*$")
         )
 
-        headEntity = findEntity(
-            Regex("(?i).*head.*")
+        spineEntity = findBoneEntity(
+            Regex("(?i)^.*spine1.*$"),
+            Regex("(?i)^.*spine.*$"),
+            Regex("(?i)^.*chest.*$")
         )
-        neckEntity = findEntity(
-            Regex("(?i).*neck.*")
+
+        // Strictly targets the skeleton Head and Neck bones!
+        headEntity = findBoneEntity(
+            Regex("(?i)^.*head$"),
+            Regex("(?i)^.*mixamorig.*head$")
         )
+        neckEntity = findBoneEntity(
+            Regex("(?i)^.*neck.*$")
+        )
+
+        Log.d("AvatarRigController", "Mapped Head Bone: $headEntity, Neck Bone: $neckEntity, R_Forearm: $rightForearmEntity, L_Forearm: $leftForearmEntity")
     }
 
     fun updateHeadPose(pitch: Float, yaw: Float) {
@@ -137,6 +152,25 @@ class AvatarRigController(
         if (targetLeft != 0) {
             applyJoint(targetLeft, JointTransform(lX, lY, lZ))
         }
+        animator?.updateBoneMatrices()
+    }
+
+    // Controls both upper arms AND forearms for the two-handed Grab-and-Stretch!
+    fun updateFullArmPose(
+        rUpperX: Float, rUpperY: Float, rUpperZ: Float,
+        rForearmX: Float, rForearmY: Float, rForearmZ: Float,
+        lUpperX: Float, lUpperY: Float, lUpperZ: Float,
+        lForearmX: Float, lForearmY: Float, lForearmZ: Float
+    ) {
+        val targetRight = if (rightUpperArmEntity != 0) rightUpperArmEntity else rightShoulderEntity
+        val targetLeft = if (leftUpperArmEntity != 0) leftUpperArmEntity else leftShoulderEntity
+
+        if (targetRight != 0) applyJoint(targetRight, JointTransform(rUpperX, rUpperY, rUpperZ))
+        if (rightForearmEntity != 0) applyJoint(rightForearmEntity, JointTransform(rForearmX, rForearmY, rForearmZ))
+
+        if (targetLeft != 0) applyJoint(targetLeft, JointTransform(lUpperX, lUpperY, lUpperZ))
+        if (leftForearmEntity != 0) applyJoint(leftForearmEntity, JointTransform(lForearmX, lForearmY, lForearmZ))
+
         animator?.updateBoneMatrices()
     }
 

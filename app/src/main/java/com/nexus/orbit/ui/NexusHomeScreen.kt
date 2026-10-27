@@ -53,15 +53,14 @@ fun NexusHomeScreen(
         AvatarAnimationController(rigController, state, scope)
     }
 
-    // Interactive Head Tracking: Head subtly turns as the ring rotates!
-    LaunchedEffect(state.ringAngle, rigController) {
+    // Dynamic Head Look-At: When you spin the ring, his head visibly tracks the movement!
+    LaunchedEffect(state.ringAngle, state.headPitch, state.headYaw, rigController) {
         if (!state.isLaunching) {
-            val yawOffset = (kotlin.math.sin(state.ringAngle) * 8.0f).coerceIn(-12f, 12f)
-            rigController?.updateHeadPose(state.headPitch, state.headYaw + yawOffset)
+            val dynamicYaw = state.headYaw + (kotlin.math.sin(state.ringAngle) * 12.0f).coerceIn(-18f, 18f)
+            rigController?.updateHeadPose(state.headPitch, dynamicYaw)
         }
     }
 
-    // Automatically resets avatar to your calibrated pose whenever returning from any app
     LaunchedEffect(state.isLaunching) {
         if (!state.isLaunching) {
             animController.resetToSavedNeutralPose()
@@ -79,7 +78,7 @@ fun NexusHomeScreen(
     val frontItem = projectedApps.firstOrNull { it.isFront } ?: projectedApps.firstOrNull()
     val selectedApp: InstalledApp? = frontItem?.let { apps.getOrNull(it.index) }
 
-    // Idle rotation with pause timer
+    // Idle rotation with interaction pause
     LaunchedEffect(state.isDragging, state.isLaunching, settings.idleRotation, settings.pauseDurationSeconds, apps.size) {
         while (isActive) {
             val now = System.currentTimeMillis()
@@ -134,12 +133,11 @@ fun NexusHomeScreen(
             modifier = Modifier.fillMaxSize()
         )
 
-        // 3D Orbital Carousel with Visual Stretch on Front Icon
+        // 3D Orbital Carousel with Two-Handed Grab-and-Stretch Icon Scaling
         for (item in projectedApps) {
             val app = apps.getOrNull(item.index) ?: continue
             val isSelected = item.isFront
 
-            // Dynamic grab-and-stretch scaling applied via hardware graphics layer
             val scaleX = if (isSelected && state.isLaunching) item.scale * state.iconStretchX else item.scale
             val scaleY = if (isSelected && state.isLaunching) item.scale * state.iconStretchY else item.scale
             val currentAlpha = if (isSelected && state.isLaunching) state.iconStretchAlpha else item.alpha
@@ -195,7 +193,7 @@ fun NexusHomeScreen(
             }
         }
 
-        // HUD App Label
+        // Selected App Label HUD
         if (selectedApp != null && !state.isLaunching) {
             Column(
                 modifier = Modifier
