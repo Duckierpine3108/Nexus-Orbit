@@ -6,6 +6,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.math.PI
+import kotlin.math.sin
 
 class AvatarAnimationController(
     private val rigController: AvatarRigController?,
@@ -49,16 +51,16 @@ class AvatarAnimationController(
 
             val baseHeadPitch = state.headPitch
 
-            // Target pose for Right Arm reaching directly onto front icon:
+            // Target pose for Right Arm reaching directly onto front icon
             val grabRx = 48f
             val grabRy = 8f
             val grabRz = -18f
 
             // PHASE 1: REACH & CLASP (0ms -> 180ms)
-            val reachSteps = (180f / speed / stepDelay.toFloat()).toInt().coerceAtLeast(1)
+            val reachSteps = ((180f / speed) / stepDelay).toInt().coerceAtLeast(1)
             for (i in 1..reachSteps) {
-                val t = i.toFloat() / reachSteps
-                val eased = 1f - Math.pow((1.0 - t), 2.0).toFloat()
+                val t = i.toFloat() / reachSteps.toFloat()
+                val eased = 1f - (1f - t) * (1f - t)
 
                 val curRx = startRx + (grabRx - startRx) * eased
                 val curRy = startRy + (grabRy - startRy) * eased
@@ -81,10 +83,10 @@ class AvatarAnimationController(
             onGrabTriggered()
 
             // PHASE 3: THE STRETCH (180ms -> 340ms)
-            val stretchSteps = (160f / speed / stepDelay.toFloat()).toInt().coerceAtLeast(1)
+            val stretchSteps = ((160f / speed) / stepDelay).toInt().coerceAtLeast(1)
             for (i in 1..stretchSteps) {
-                val t = i.toFloat() / stretchSteps
-                val eased = Math.sin(t * Math.PI / 2.0).toFloat()
+                val t = i.toFloat() / stretchSteps.toFloat()
+                val eased = sin(t * (PI.toFloat() / 2f))
 
                 val stretchRx = grabRx + 6f * eased
                 val stretchRy = grabRy + 12f * eased
@@ -103,10 +105,11 @@ class AvatarAnimationController(
             }
 
             // PHASE 4: RECOVERY BACK TO NEUTRAL (340ms -> 560ms)
-            val recoverSteps = (220f / speed / stepDelay.toFloat()).toInt().coerceAtLeast(1)
+            val recoverSteps = ((220f / speed) / stepDelay).toInt().coerceAtLeast(1)
             for (i in 1..recoverSteps) {
-                val t = i.toFloat() / recoverSteps
-                val eased = 1f - Math.pow((1.0 - t), 3.0).toFloat()
+                val t = i.toFloat() / recoverSteps.toFloat()
+                val invT = 1f - t
+                val eased = 1f - invT * invT * invT
 
                 val curRx = (grabRx + 6f) + (startRx - (grabRx + 6f)) * eased
                 val curRy = (grabRy + 12f) + (startRy - (grabRy + 12f)) * eased

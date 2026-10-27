@@ -58,7 +58,7 @@ fun NexusLauncherScene(
                     scaleToUnits = 1.80f
                 ).apply {
                     position = Position(x = 0f, y = state.avatarOffsetY, z = 0f)
-                    scale = Scale(state.avatarScale, state.avatarScale, state.avatarScale)
+                    scale = Scale(state.avatarScale)
                 }
                 modelNode = node
 
@@ -87,7 +87,7 @@ fun NexusLauncherScene(
     LaunchedEffect(state.avatarOffsetY, state.avatarScale) {
         modelNode?.let { node ->
             node.position = Position(0f, state.avatarOffsetY, 0f)
-            node.scale = Scale(state.avatarScale, state.avatarScale, state.avatarScale)
+            node.scale = Scale(state.avatarScale)
         }
     }
 
