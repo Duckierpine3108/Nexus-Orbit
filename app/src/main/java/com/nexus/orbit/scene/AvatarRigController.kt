@@ -57,7 +57,6 @@ class AvatarRigController(
     }
 
     private fun autoMapJointRoles() {
-        // Excludes 3D mesh surfaces (e.g. Wolf3D_Head, Wolf3D_Body) so we strictly target skeleton bones!
         fun findBoneEntity(vararg patterns: Regex): Int {
             for ((name, entity) in discoveredJoints) {
                 val isMesh = name.startsWith("Wolf3D", ignoreCase = true) ||
@@ -119,7 +118,6 @@ class AvatarRigController(
             Regex("(?i)^.*chest.*$")
         )
 
-        // Strictly targets the skeleton Head and Neck bones!
         headEntity = findBoneEntity(
             Regex("(?i)^.*head$"),
             Regex("(?i)^.*mixamorig.*head$")
@@ -127,8 +125,6 @@ class AvatarRigController(
         neckEntity = findBoneEntity(
             Regex("(?i)^.*neck.*$")
         )
-
-        Log.d("AvatarRigController", "Mapped Head Bone: $headEntity, Neck Bone: $neckEntity, R_Forearm: $rightForearmEntity, L_Forearm: $leftForearmEntity")
     }
 
     fun updateHeadPose(pitch: Float, yaw: Float) {
@@ -146,30 +142,37 @@ class AvatarRigController(
         val targetRight = if (rightUpperArmEntity != 0) rightUpperArmEntity else rightShoulderEntity
         val targetLeft = if (leftUpperArmEntity != 0) leftUpperArmEntity else leftShoulderEntity
 
-        if (targetRight != 0) {
-            applyJoint(targetRight, JointTransform(rX, rY, rZ))
-        }
-        if (targetLeft != 0) {
-            applyJoint(targetLeft, JointTransform(lX, lY, lZ))
-        }
+        if (targetRight != 0) applyJoint(targetRight, JointTransform(rX, rY, rZ))
+        if (targetLeft != 0) applyJoint(targetLeft, JointTransform(lX, lY, lZ))
         animator?.updateBoneMatrices()
     }
 
-    // Controls both upper arms AND forearms for the two-handed Grab-and-Stretch!
-    fun updateFullArmPose(
+    // Spine tilt + head look + subtle arm reach for picking up the app
+    fun updateTiltAndPickPose(
+        spineBendX: Float,
+        headPitch: Float, headYaw: Float,
         rUpperX: Float, rUpperY: Float, rUpperZ: Float,
-        rForearmX: Float, rForearmY: Float, rForearmZ: Float,
+        rForearmBend: Float,
         lUpperX: Float, lUpperY: Float, lUpperZ: Float,
-        lForearmX: Float, lForearmY: Float, lForearmZ: Float
+        lForearmBend: Float
     ) {
+        if (spineEntity != 0) {
+            applyJoint(spineEntity, JointTransform(rotX = spineBendX, rotY = 0f, rotZ = 0f))
+        }
+
+        val targetHead = if (headEntity != 0) headEntity else neckEntity
+        if (targetHead != 0) {
+            applyJoint(targetHead, JointTransform(rotX = headPitch, rotY = headYaw, rotZ = 0f))
+        }
+
         val targetRight = if (rightUpperArmEntity != 0) rightUpperArmEntity else rightShoulderEntity
         val targetLeft = if (leftUpperArmEntity != 0) leftUpperArmEntity else leftShoulderEntity
 
         if (targetRight != 0) applyJoint(targetRight, JointTransform(rUpperX, rUpperY, rUpperZ))
-        if (rightForearmEntity != 0) applyJoint(rightForearmEntity, JointTransform(rForearmX, rForearmY, rForearmZ))
+        if (rightForearmEntity != 0) applyJoint(rightForearmEntity, JointTransform(rForearmBend, 0f, 0f))
 
         if (targetLeft != 0) applyJoint(targetLeft, JointTransform(lUpperX, lUpperY, lUpperZ))
-        if (leftForearmEntity != 0) applyJoint(leftForearmEntity, JointTransform(lForearmX, lForearmY, lForearmZ))
+        if (leftForearmEntity != 0) applyJoint(leftForearmEntity, JointTransform(lForearmBend, 0f, 0f))
 
         animator?.updateBoneMatrices()
     }

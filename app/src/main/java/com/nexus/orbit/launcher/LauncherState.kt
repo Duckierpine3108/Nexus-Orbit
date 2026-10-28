@@ -23,7 +23,10 @@ class LauncherState {
     var avatarOffsetY by mutableFloatStateOf(-0.35f)
     var avatarScale by mutableFloatStateOf(1.30f)
 
-    // Head Alignment & Gaze Tracking (+14 degrees tilts chin down to face user)
+    // App Ring Height (0.50 places the orbit directly at waist/hands)
+    var ringHeightRatio by mutableFloatStateOf(0.50f)
+
+    // Head Alignment
     var headPitch by mutableFloatStateOf(14f)
     var headYaw by mutableFloatStateOf(0f)
 

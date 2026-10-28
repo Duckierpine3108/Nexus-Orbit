@@ -16,16 +16,12 @@ data class ProjectedAppItem(
 )
 
 class AppRingController {
-    /**
-     * 5-slot continuous 3D carousel.
-     * Only 5 apps (center, 2 left, 2 right) are visible at any given moment.
-     * Eliminates overlapping stacks completely.
-     */
     fun computeOrbit(
         totalApps: Int,
         ringAngle: Float,
         viewportWidth: Float,
-        viewportHeight: Float
+        viewportHeight: Float,
+        ringHeightRatio: Float = 0.50f // Aligns right at waist/hand level!
     ): List<ProjectedAppItem> {
         if (totalApps <= 0) return emptyList()
 
@@ -34,7 +30,7 @@ class AppRingController {
         val baseIndex = floatCenter.roundToInt()
 
         val list = mutableListOf<ProjectedAppItem>()
-        val centerY = viewportHeight * 0.62f
+        val centerY = viewportHeight * ringHeightRatio
         val horizontalSpread = viewportWidth * 0.44f
 
         for (slot in -3..3) {

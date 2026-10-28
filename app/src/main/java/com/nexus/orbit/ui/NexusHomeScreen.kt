@@ -53,11 +53,21 @@ fun NexusHomeScreen(
         AvatarAnimationController(rigController, state, scope)
     }
 
-    // Dynamic Head Look-At: When you spin the ring, his head visibly tracks the movement!
-    LaunchedEffect(state.ringAngle, state.headPitch, state.headYaw, rigController) {
-        if (!state.isLaunching) {
-            val dynamicYaw = state.headYaw + (kotlin.math.sin(state.ringAngle) * 12.0f).coerceIn(-18f, 18f)
-            rigController?.updateHeadPose(state.headPitch, dynamicYaw)
+    // Dynamic Head Look-At:
+    // 1. When dragging: tracks ring rotation up to safe neck limit (+-22 deg) and stops cleanly.
+    // 2. When idle: alternates glances right for ~6s, center at you, and left for ~6s!
+    LaunchedEffect(state.isDragging, state.ringAngle, state.headPitch, state.headYaw, rigController) {
+        while (isActive) {
+            if (state.isDragging) {
+                val dragYaw = (kotlin.math.sin(state.ringAngle) * 22f).coerceIn(-22f, 22f)
+                rigController?.updateHeadPose(state.headPitch, state.headYaw + dragYaw)
+            } else if (!state.isLaunching) {
+                val timeSec = System.currentTimeMillis() / 1000.0
+                // Lifelike smooth periodic glance alternating right and left
+                val idleYaw = (kotlin.math.sin(timeSec * 0.65) * 16f).toFloat()
+                rigController?.updateHeadPose(state.headPitch, state.headYaw + idleYaw)
+            }
+            delay(16)
         }
     }
 
@@ -71,14 +81,15 @@ fun NexusHomeScreen(
     var viewportWidth by remember { mutableFloatStateOf(1080f) }
     var viewportHeight by remember { mutableFloatStateOf(2400f) }
 
-    val projectedApps = remember(apps.size, state.ringAngle, viewportWidth, viewportHeight) {
-        ringController.computeOrbit(apps.size, state.ringAngle, viewportWidth, viewportHeight)
+    // Uses state.ringHeightRatio so ring sits right at hands level
+    val projectedApps = remember(apps.size, state.ringAngle, viewportWidth, viewportHeight, state.ringHeightRatio) {
+        ringController.computeOrbit(apps.size, state.ringAngle, viewportWidth, viewportHeight, state.ringHeightRatio)
     }
 
     val frontItem = projectedApps.firstOrNull { it.isFront } ?: projectedApps.firstOrNull()
     val selectedApp: InstalledApp? = frontItem?.let { apps.getOrNull(it.index) }
 
-    // Idle rotation with interaction pause
+    // Idle rotation with pause timer
     LaunchedEffect(state.isDragging, state.isLaunching, settings.idleRotation, settings.pauseDurationSeconds, apps.size) {
         while (isActive) {
             val now = System.currentTimeMillis()
@@ -133,7 +144,7 @@ fun NexusHomeScreen(
             modifier = Modifier.fillMaxSize()
         )
 
-        // 3D Orbital Carousel with Two-Handed Grab-and-Stretch Icon Scaling
+        // 3D Orbital Carousel with Pick & Stretch Icon Scaling
         for (item in projectedApps) {
             val app = apps.getOrNull(item.index) ?: continue
             val isSelected = item.isFront
@@ -193,12 +204,12 @@ fun NexusHomeScreen(
             }
         }
 
-        // Selected App Label HUD
+        // HUD App Label
         if (selectedApp != null && !state.isLaunching) {
             Column(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(bottom = 60.dp),
+                    .padding(bottom = 50.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(

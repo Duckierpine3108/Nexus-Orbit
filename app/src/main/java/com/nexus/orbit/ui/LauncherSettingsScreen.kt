@@ -100,6 +100,25 @@ fun LauncherSettingsScreen(
             }
 
             Spacer(modifier = Modifier.height(14.dp))
+			
+			// App Orbit Ring Level
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = OrbitSurfaceDark),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Text("App Orbit Vertical Level", color = OrbitCyanAccent, fontSize = 14.sp)
+                    Text("Aligns apps with avatar hands (${(state.ringHeightRatio * 100).toInt()}%)", color = OrbitTextSecondary, fontSize = 12.sp)
+                    Slider(
+                        value = state.ringHeightRatio,
+                        onValueChange = { state.ringHeightRatio = it },
+                        valueRange = 0.38f..0.65f
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
 
             // 2. Avatar Framing
             Card(
