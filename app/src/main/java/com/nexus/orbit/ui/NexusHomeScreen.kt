@@ -159,15 +159,15 @@ fun NexusHomeScreen(
                 )
         )
 
-        // 3D Orbital Carousel with Clean Tap Feedback
+        // 3D Orbital Carousel with Physical Push Feedback
         for (item in projectedApps) {
             val app = apps.getOrNull(item.index) ?: continue
             val isSelected = item.isFront
 
-            // Quick, clean tap bounce when touched
+            // When selected app is clicked, scales down to 0.88x as left hand pushes it!
             val tapScale by animateFloatAsState(
-                targetValue = if (isSelected && state.isLaunching) 0.92f else item.scale,
-                animationSpec = tween(durationMillis = 100),
+                targetValue = if (isSelected && state.isLaunching) 0.88f else item.scale,
+                animationSpec = tween(durationMillis = 140),
                 label = "tapScale"
             )
 

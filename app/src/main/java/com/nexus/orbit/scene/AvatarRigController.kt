@@ -74,42 +74,44 @@ class AvatarRigController(
             return 0
         }
 
-        rightShoulderEntity = findBoneEntity(
-            Regex("(?i)^.*right.*shoulder.*$"),
-            Regex("(?i)^.*right.*clavicle.*$"),
-            Regex("(?i)^.*clavicle.*r.*$")
-        )
-        rightUpperArmEntity = findBoneEntity(
-            Regex("(?i)^.*right.*upperarm.*$"),
-            Regex("(?i)^.*rightarm.*$"),
-            Regex("(?i)^.*arm.*r.*$")
-        )
-        rightForearmEntity = findBoneEntity(
-            Regex("(?i)^.*right.*forearm.*$"),
-            Regex("(?i)^.*right.*lowerarm.*$"),
-            Regex("(?i)^.*forearm.*r.*$")
-        )
-        rightHandEntity = findBoneEntity(
-            Regex("(?i)^.*right.*hand.*$"),
-            Regex("(?i)^.*right.*wrist.*$")
-        )
-
+        // Left Arm Bones (Avatar's Left / Viewer's Right)
         leftShoulderEntity = findBoneEntity(
             Regex("(?i)^.*left.*shoulder.*$"),
             Regex("(?i)^.*left.*clavicle.*$")
         )
         leftUpperArmEntity = findBoneEntity(
-            Regex("(?i)^.*left.*upperarm.*$"),
-            Regex("(?i)^.*leftarm.*$"),
-            Regex("(?i)^.*arm.*l.*$")
+            Regex("(?i)^.*left.*upper[._ -]?arm.*$"),
+            Regex("(?i)^.*leftarm$"),
+            Regex("(?i)^.*mixamorig.*leftarm$")
         )
         leftForearmEntity = findBoneEntity(
             Regex("(?i)^.*left.*forearm.*$"),
-            Regex("(?i)^.*left.*lowerarm.*$"),
-            Regex("(?i)^.*forearm.*l.*$")
+            Regex("(?i)^.*left.*lower[._ -]?arm.*$"),
+            Regex("(?i)^.*forearm.*[._]l$")
         )
         leftHandEntity = findBoneEntity(
-            Regex("(?i)^.*left.*hand.*$")
+            Regex("(?i)^.*left.*hand.*$"),
+            Regex("(?i)^.*left.*wrist.*$")
+        )
+
+        // Right Arm Bones (Avatar's Right / Viewer's Left)
+        rightShoulderEntity = findBoneEntity(
+            Regex("(?i)^.*right.*shoulder.*$"),
+            Regex("(?i)^.*right.*clavicle.*$")
+        )
+        rightUpperArmEntity = findBoneEntity(
+            Regex("(?i)^.*right.*upper[._ -]?arm.*$"),
+            Regex("(?i)^.*rightarm$"),
+            Regex("(?i)^.*mixamorig.*rightarm$")
+        )
+        rightForearmEntity = findBoneEntity(
+            Regex("(?i)^.*right.*forearm.*$"),
+            Regex("(?i)^.*right.*lower[._ -]?arm.*$"),
+            Regex("(?i)^.*forearm.*[._]r$")
+        )
+        rightHandEntity = findBoneEntity(
+            Regex("(?i)^.*right.*hand.*$"),
+            Regex("(?i)^.*right.*wrist.*$")
         )
 
         spineEntity = findBoneEntity(
@@ -147,7 +149,7 @@ class AvatarRigController(
         animator?.updateBoneMatrices()
     }
 
-    // Spine tilt + head look + subtle arm reach for picking up the app
+    // Precise Left Hand Push & Body Tilt control
     fun updateTiltAndPickPose(
         spineBendX: Float,
         headPitch: Float, headYaw: Float,
