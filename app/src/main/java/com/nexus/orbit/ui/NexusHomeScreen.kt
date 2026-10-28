@@ -13,6 +13,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -53,9 +55,9 @@ fun NexusHomeScreen(
         AvatarAnimationController(rigController, state, scope)
     }
 
-    // Dynamic Head Look-At:
-    // 1. When dragging: tracks ring rotation up to safe neck limit (+-22 deg) and stops cleanly.
-    // 2. When idle: alternates glances right for ~6s, center at you, and left for ~6s!
+    // Dynamic Look-At Tracking:
+    // Dragging: tracks finger/orbit and stops at natural limit (+-22 deg)
+    // Idle: alternates glances right for ~6s, center at you, and left for ~6s!
     LaunchedEffect(state.isDragging, state.ringAngle, state.headPitch, state.headYaw, rigController) {
         while (isActive) {
             if (state.isDragging) {
@@ -63,7 +65,6 @@ fun NexusHomeScreen(
                 rigController?.updateHeadPose(state.headPitch, state.headYaw + dragYaw)
             } else if (!state.isLaunching) {
                 val timeSec = System.currentTimeMillis() / 1000.0
-                // Lifelike smooth periodic glance alternating right and left
                 val idleYaw = (kotlin.math.sin(timeSec * 0.65) * 16f).toFloat()
                 rigController?.updateHeadPose(state.headPitch, state.headYaw + idleYaw)
             }
@@ -81,7 +82,6 @@ fun NexusHomeScreen(
     var viewportWidth by remember { mutableFloatStateOf(1080f) }
     var viewportHeight by remember { mutableFloatStateOf(2400f) }
 
-    // Uses state.ringHeightRatio so ring sits right at hands level
     val projectedApps = remember(apps.size, state.ringAngle, viewportWidth, viewportHeight, state.ringHeightRatio) {
         ringController.computeOrbit(apps.size, state.ringAngle, viewportWidth, viewportHeight, state.ringHeightRatio)
     }
@@ -137,6 +137,7 @@ fun NexusHomeScreen(
                 )
             }
     ) {
+        // 1. Native 3D Room & Skinned Avatar
         NexusLauncherScene(
             state = state,
             settings = settings,
@@ -144,7 +145,20 @@ fun NexusHomeScreen(
             modifier = Modifier.fillMaxSize()
         )
 
-        // 3D Orbital Carousel with Pick & Stretch Icon Scaling
+        // 2. Subtle Ground Floor Shadow/Glow (Grounds the avatar in the room)
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 90.dp)
+                .size(width = 320.dp, height = 45.dp)
+                .background(
+                    brush = Brush.radialGradient(
+                        colors = listOf(Color(0x2A00E5FF), Color.Transparent)
+                    )
+                )
+        )
+
+        // 3. 3D Orbital Carousel with Visual Stretch on Front Icon
         for (item in projectedApps) {
             val app = apps.getOrNull(item.index) ?: continue
             val isSelected = item.isFront
@@ -167,7 +181,14 @@ fun NexusHomeScreen(
                     }
                     .then(
                         if (isSelected) {
-                            Modifier.border(2.5.dp, OrbitCyanAccent, CircleShape)
+                            Modifier
+                                .background(
+                                    brush = Brush.radialGradient(
+                                        colors = listOf(Color(0x3300E5FF), Color.Transparent)
+                                    ),
+                                    shape = CircleShape
+                                )
+                                .border(2.5.dp, OrbitCyanAccent, CircleShape)
                         } else Modifier
                     )
                     .clickable(enabled = !state.isLaunching) {
@@ -204,7 +225,7 @@ fun NexusHomeScreen(
             }
         }
 
-        // HUD App Label
+        // 4. HUD App Label
         if (selectedApp != null && !state.isLaunching) {
             Column(
                 modifier = Modifier
@@ -227,7 +248,7 @@ fun NexusHomeScreen(
             }
         }
 
-        // Settings Entry
+        // 5. Settings Entry
         IconButton(
             onClick = { state.showSettings = true },
             modifier = Modifier

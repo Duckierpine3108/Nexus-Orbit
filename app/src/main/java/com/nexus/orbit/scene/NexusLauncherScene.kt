@@ -29,10 +29,11 @@ fun NexusLauncherScene(
     val engine = rememberEngine()
     val modelLoader = rememberModelLoader(engine)
 
+    // Key front light: natural, balanced studio illumination
     val mainLightNode = rememberMainLightNode(engine) {
-        intensity = 170_000.0f
-        position = Position(x = 0.0f, y = 3.5f, z = 3.5f)
-        rotation = Rotation(x = -30.0f, y = 0.0f, z = 0.0f)
+        intensity = 155_000.0f
+        position = Position(x = 0.0f, y = 3.2f, z = 3.2f)
+        rotation = Rotation(x = -26.0f, y = 0.0f, z = 0.0f)
     }
 
     val cameraNode = rememberCameraNode(engine) {

@@ -51,82 +51,107 @@ class AvatarAnimationController(
 
             val baseHeadPitch = state.headPitch
 
-            // PHASE 1: BEND FORWARD TO PICK APP (0ms -> 180ms)
-            // Spine tilts forward 10°, head looks down at the app, hands subtly dip toward app
-            val pickSteps = ((180f / speed) / stepDelay).toInt().coerceAtLeast(1)
-            for (i in 1..pickSteps) {
-                val t = i.toFloat() / pickSteps.toFloat()
-                val eased = 1f - (1f - t) * (1f - t)
+            // FULL INWARD REACH COORDINATES:
+            // Swings upper arm forward and inward across the chest, with an 82° elbow bend
+            // This brings the hand directly from the hip onto the DEAD CENTER app icon!
+            val targetUpperX = 32f
+            val targetUpperY = 34f
+            val targetUpperZ = -14f
+            val targetForearmBend = 82f
 
-                val spineBend = 10f * eased
-                val headLookDown = baseHeadPitch + (12f * eased)
+            // PHASE 1: REACH & TOUCH CENTER APP (0ms -> 200ms)
+            val reachSteps = ((200f / speed) / stepDelay).toInt().coerceAtLeast(1)
+            for (i in 1..reachSteps) {
+                val t = i.toFloat() / reachSteps.toFloat()
+                // Smooth cubic ease-out
+                val eased = 1f - (1f - t) * (1f - t) * (1f - t)
 
-                // Hands dip forward naturally with body bend
-                val curRx = startRx - (12f * eased)
-                val curLx = startLx - (12f * eased)
-                val forearmDip = 20f * eased
+                val spineBend = 8f * eased
+                val headLook = baseHeadPitch + (14f * eased)
+
+                // Right arm travels from hip all the way to center icon
+                val curUpperX = startRx + (targetUpperX - startRx) * eased
+                val curUpperY = startRy + (targetUpperY - startRy) * eased
+                val curUpperZ = startRz + (targetUpperZ - startRz) * eased
+                val curForearm = targetForearmBend * eased
 
                 rigController?.updateTiltAndPickPose(
                     spineBendX = spineBend,
-                    headPitch = headLookDown,
+                    headPitch = headLook,
                     headYaw = state.headYaw,
-                    rUpperX = curRx, rUpperY = startRy, rUpperZ = startRz,
-                    rForearmBend = forearmDip,
-                    lUpperX = curLx, lUpperY = startLy, lUpperZ = startLz,
-                    lForearmBend = forearmDip
+                    rUpperX = curUpperX, rUpperY = curUpperY, rUpperZ = curUpperZ,
+                    rForearmBend = curForearm,
+                    lUpperX = startLx, lUpperY = startLy, lUpperZ = startLz,
+                    lForearmBend = 0f
                 )
 
-                // Icon squeezes slightly as it's picked
-                state.iconStretchX = 1.0f - (0.08f * eased)
-                state.iconStretchY = 1.0f - (0.08f * eased)
+                // Icon compresses slightly under hand contact
+                state.iconStretchX = 1.0f - (0.12f * eased)
+                state.iconStretchY = 1.0f - (0.12f * eased)
 
                 delay(stepDelay)
             }
 
-            // PHASE 2: TRIGGER SYSTEM APP LAUNCH WINDOW
+            // PHASE 2: TRIGGER REAL ANDROID APP LAUNCH
             onGrabTriggered()
 
-            // PHASE 3: STRETCH ICON (180ms -> 340ms)
-            // Icon physically stretches wide and expands directly into the opened window!
-            val stretchSteps = ((160f / speed) / stepDelay).toInt().coerceAtLeast(1)
+            // PHASE 3: THE PHYSICAL STRETCH (200ms -> 370ms)
+            // Hand pulls outward slightly, and the icon stretches horizontally and vertically!
+            val stretchSteps = ((170f / speed) / stepDelay).toInt().coerceAtLeast(1)
             for (i in 1..stretchSteps) {
                 val t = i.toFloat() / stretchSteps.toFloat()
                 val eased = sin(t * (PI.toFloat() / 2f))
 
-                // VISUAL STRETCH on the icon
-                state.iconStretchX = 0.92f + (1.68f * eased) // Stretches to 2.6x
-                state.iconStretchY = 0.92f + (0.88f * eased) // Stretches to 1.8x
-                state.iconStretchAlpha = 1.0f - (0.45f * eased)
+                val curUpperX = targetUpperX + (10f * eased)
+                val curUpperY = targetUpperY + (12f * eased)
+                val curForearm = targetForearmBend - (12f * eased)
+
+                rigController?.updateTiltAndPickPose(
+                    spineBendX = 8f * (1f - 0.5f * eased),
+                    headPitch = baseHeadPitch + 14f,
+                    headYaw = state.headYaw,
+                    rUpperX = curUpperX, rUpperY = curUpperY, rUpperZ = targetUpperZ,
+                    rForearmBend = curForearm,
+                    lUpperX = startLx, lUpperY = startLy, lUpperZ = startLz,
+                    lForearmBend = 0f
+                )
+
+                // Dynamic icon stretch: pulls open like a portal
+                state.iconStretchX = 0.88f + (1.75f * eased) // Expands to 2.6x
+                state.iconStretchY = 0.88f + (0.85f * eased) // Expands to 1.7x
+                state.iconStretchAlpha = 1.0f - (0.50f * eased)
 
                 delay(stepDelay)
             }
 
-            // PHASE 4: SMOOTH UNBEND & RECOVERY TO UPRIGHT NEUTRAL (340ms -> 560ms)
-            val recoverSteps = ((220f / speed) / stepDelay).toInt().coerceAtLeast(1)
+            // PHASE 4: SMOOTH RETURN TO RESTING POSE (370ms -> 610ms)
+            val recoverSteps = ((240f / speed) / stepDelay).toInt().coerceAtLeast(1)
             for (i in 1..recoverSteps) {
                 val t = i.toFloat() / recoverSteps.toFloat()
                 val invT = 1f - t
                 val eased = 1f - invT * invT * invT
 
-                val spineBend = 10f * (1f - eased)
-                val headLookDown = (baseHeadPitch + 12f) - (12f * eased)
-                val curRx = (startRx - 12f) + (12f * eased)
-                val curLx = (startLx - 12f) + (12f * eased)
-                val forearmDip = 20f * (1f - eased)
+                val spineBend = 4f * (1f - eased)
+                val headLook = (baseHeadPitch + 14f) - (14f * eased)
+
+                val curUpperX = (targetUpperX + 10f) + (startRx - (targetUpperX + 10f)) * eased
+                val curUpperY = (targetUpperY + 12f) + (startRy - (targetUpperY + 12f)) * eased
+                val curUpperZ = targetUpperZ + (startRz - targetUpperZ) * eased
+                val curForearm = (targetForearmBend - 12f) * (1f - eased)
 
                 rigController?.updateTiltAndPickPose(
                     spineBendX = spineBend,
-                    headPitch = headLookDown,
+                    headPitch = headLook,
                     headYaw = state.headYaw,
-                    rUpperX = curRx, rUpperY = startRy, rUpperZ = startRz,
-                    rForearmBend = forearmDip,
-                    lUpperX = curLx, lUpperY = startLy, lUpperZ = startLz,
-                    lForearmBend = forearmDip
+                    rUpperX = curUpperX, rUpperY = curUpperY, rUpperZ = curUpperZ,
+                    rForearmBend = curForearm,
+                    lUpperX = startLx, lUpperY = startLy, lUpperZ = startLz,
+                    lForearmBend = 0f
                 )
 
-                state.iconStretchX = 2.60f - (1.60f * eased)
-                state.iconStretchY = 1.80f - (0.80f * eased)
-                state.iconStretchAlpha = 0.55f + (0.45f * eased)
+                state.iconStretchX = 2.63f - (1.63f * eased)
+                state.iconStretchY = 1.73f - (0.73f * eased)
+                state.iconStretchAlpha = 0.50f + (0.50f * eased)
 
                 delay(stepDelay)
             }
