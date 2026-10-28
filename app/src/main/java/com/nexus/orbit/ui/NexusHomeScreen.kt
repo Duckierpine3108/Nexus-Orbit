@@ -1,5 +1,7 @@
 package com.nexus.orbit.ui
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -57,7 +59,7 @@ fun NexusHomeScreen(
 
     // Dynamic Look-At Tracking:
     // Dragging: tracks finger/orbit and stops at natural limit (+-22 deg)
-    // Idle: alternates glances right for ~6s, center at you, and left for ~6s!
+    // Idle: alternates glances right for ~6s, center at you, and left for ~6s
     LaunchedEffect(state.isDragging, state.ringAngle, state.headPitch, state.headYaw, rigController) {
         while (isActive) {
             if (state.isDragging) {
@@ -137,7 +139,6 @@ fun NexusHomeScreen(
                 )
             }
     ) {
-        // 1. Native 3D Room & Skinned Avatar
         NexusLauncherScene(
             state = state,
             settings = settings,
@@ -145,7 +146,7 @@ fun NexusHomeScreen(
             modifier = Modifier.fillMaxSize()
         )
 
-        // 2. Subtle Ground Floor Shadow/Glow (Grounds the avatar in the room)
+        // Subtle Ground Shadow
         Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -158,14 +159,17 @@ fun NexusHomeScreen(
                 )
         )
 
-        // 3. 3D Orbital Carousel with Visual Stretch on Front Icon
+        // 3D Orbital Carousel with Clean Tap Feedback
         for (item in projectedApps) {
             val app = apps.getOrNull(item.index) ?: continue
             val isSelected = item.isFront
 
-            val scaleX = if (isSelected && state.isLaunching) item.scale * state.iconStretchX else item.scale
-            val scaleY = if (isSelected && state.isLaunching) item.scale * state.iconStretchY else item.scale
-            val currentAlpha = if (isSelected && state.isLaunching) state.iconStretchAlpha else item.alpha
+            // Quick, clean tap bounce when touched
+            val tapScale by animateFloatAsState(
+                targetValue = if (isSelected && state.isLaunching) 0.92f else item.scale,
+                animationSpec = tween(durationMillis = 100),
+                label = "tapScale"
+            )
 
             Box(
                 modifier = Modifier
@@ -175,9 +179,9 @@ fun NexusHomeScreen(
                     )
                     .size(72.dp)
                     .graphicsLayer {
-                        this.scaleX = scaleX
-                        this.scaleY = scaleY
-                        this.alpha = currentAlpha
+                        this.scaleX = tapScale
+                        this.scaleY = tapScale
+                        this.alpha = item.alpha
                     }
                     .then(
                         if (isSelected) {
@@ -225,7 +229,7 @@ fun NexusHomeScreen(
             }
         }
 
-        // 4. HUD App Label
+        // HUD App Label
         if (selectedApp != null && !state.isLaunching) {
             Column(
                 modifier = Modifier
@@ -248,7 +252,7 @@ fun NexusHomeScreen(
             }
         }
 
-        // 5. Settings Entry
+        // Settings Entry
         IconButton(
             onClick = { state.showSettings = true },
             modifier = Modifier

@@ -23,14 +23,14 @@ class LauncherState {
     var avatarOffsetY by mutableFloatStateOf(-0.35f)
     var avatarScale by mutableFloatStateOf(1.30f)
 
-    // App Ring Height (0.50 places the orbit directly at waist/hands)
+    // App Ring Height
     var ringHeightRatio by mutableFloatStateOf(0.50f)
 
     // Head Alignment
     var headPitch by mutableFloatStateOf(14f)
     var headYaw by mutableFloatStateOf(0f)
 
-    // Arm Angles
+    // Arm Angles (Calibrated)
     var rightArmX by mutableFloatStateOf(80f)
     var rightArmY by mutableFloatStateOf(-2f)
     var rightArmZ by mutableFloatStateOf(-28f)
@@ -38,9 +38,4 @@ class LauncherState {
     var leftArmX by mutableFloatStateOf(74f)
     var leftArmY by mutableFloatStateOf(19f)
     var leftArmZ by mutableFloatStateOf(13f)
-
-    // Icon Grab & Stretch
-    var iconStretchX by mutableFloatStateOf(1.0f)
-    var iconStretchY by mutableFloatStateOf(1.0f)
-    var iconStretchAlpha by mutableFloatStateOf(1.0f)
 }
